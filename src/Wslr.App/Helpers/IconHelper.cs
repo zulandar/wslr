@@ -47,8 +47,19 @@ public static class IconHelper
         var rect = new RectangleF(0, 0, size, size);
         graphics.DrawString("W", font, textBrush, rect, format);
 
-        // Convert bitmap to icon
-        return Icon.FromHandle(bitmap.GetHicon());
+        // Convert bitmap to icon by saving to memory stream
+        // This ensures the icon owns its data and survives bitmap disposal
+        using var stream = new MemoryStream();
+        bitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+        stream.Position = 0;
+
+        // Create icon from the PNG data via a new bitmap
+        using var iconBitmap = new Bitmap(stream);
+        var iconHandle = iconBitmap.GetHicon();
+
+        // Clone the icon so it owns its data
+        using var tempIcon = Icon.FromHandle(iconHandle);
+        return (Icon)tempIcon.Clone();
     }
 
     /// <summary>

@@ -29,12 +29,17 @@ public class TrayIconService : ITrayIconService, IDisposable
     /// <inheritdoc />
     public void Initialize()
     {
+        var icon = IconHelper.CreateTrayIcon();
+
         _taskbarIcon = new TaskbarIcon
         {
-            Icon = IconHelper.CreateTrayIcon(),
+            Icon = icon,
             ToolTipText = "WSLR - WSL Instance Manager",
             ContextMenu = CreateContextMenu()
         };
+
+        // Force create the tray icon immediately
+        _taskbarIcon.ForceCreate();
 
         _taskbarIcon.TrayMouseDoubleClick += (_, _) =>
         {
