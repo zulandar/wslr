@@ -1,3 +1,4 @@
+using System.Text;
 using Wslr.Core.Exceptions;
 using Wslr.Core.Interfaces;
 using Wslr.Core.Models;
@@ -477,14 +478,14 @@ public class WslServiceTests
         var expectedResult = new ProcessResult { ExitCode = 0, StandardOutput = "output", StandardError = "" };
 
         _processRunnerMock
-            .Setup(x => x.RunAsync("wsl.exe", "-d Ubuntu -- ls -la", It.IsAny<CancellationToken>()))
+            .Setup(x => x.RunAsync("wsl.exe", "-d Ubuntu -- ls -la", Encoding.UTF8, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         var result = await _sut.ExecuteCommandAsync("Ubuntu", "ls -la");
 
         result.Should().Be(expectedResult);
         _processRunnerMock.Verify(
-            x => x.RunAsync("wsl.exe", "-d Ubuntu -- ls -la", It.IsAny<CancellationToken>()),
+            x => x.RunAsync("wsl.exe", "-d Ubuntu -- ls -la", Encoding.UTF8, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -494,7 +495,7 @@ public class WslServiceTests
         var expectedResult = new ProcessResult { ExitCode = 1, StandardOutput = "", StandardError = "command not found" };
 
         _processRunnerMock
-            .Setup(x => x.RunAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.RunAsync(It.IsAny<string>(), It.IsAny<string>(), Encoding.UTF8, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         var result = await _sut.ExecuteCommandAsync("Ubuntu", "invalid-command");

@@ -46,6 +46,15 @@ public interface ITrayIconService
     void ShowBalloonTip(string title, string message, NotificationIcon icon = NotificationIcon.Info);
 
     /// <summary>
+    /// Shows a balloon notification that opens a URL when clicked.
+    /// </summary>
+    /// <param name="title">The notification title.</param>
+    /// <param name="message">The notification message.</param>
+    /// <param name="url">The URL to open when the notification is clicked.</param>
+    /// <param name="icon">The notification icon type.</param>
+    void ShowBalloonTipWithUrl(string title, string message, string url, NotificationIcon icon = NotificationIcon.Info);
+
+    /// <summary>
     /// Disposes of the tray icon resources.
     /// </summary>
     void Dispose();

@@ -20,6 +20,8 @@ public class TrayIconService : ITrayIconService, IDisposable
     private MenuItem? _distributionsMenuItem;
     private bool _disposed;
     private TrayIconStatus _currentStatus = TrayIconStatus.Default;
+    private string? _pendingNotificationUrl;
+    private bool _notificationClickSubscribed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TrayIconService"/> class.
@@ -223,6 +225,50 @@ public class TrayIconService : ITrayIconService, IDisposable
     public void ShowBalloonTip(string title, string message, UI.Services.NotificationIcon icon = UI.Services.NotificationIcon.Info)
     {
         _taskbarIcon?.ShowNotification(title, message, MapNotificationIcon(icon));
+    }
+
+    /// <inheritdoc />
+    public void ShowBalloonTipWithUrl(string title, string message, string url, UI.Services.NotificationIcon icon = UI.Services.NotificationIcon.Info)
+    {
+        if (_taskbarIcon is null)
+        {
+            return;
+        }
+
+        // Store the URL for the click handler
+        _pendingNotificationUrl = url;
+
+        // Subscribe to the click event (if not already)
+        if (!_notificationClickSubscribed)
+        {
+            _taskbarIcon.TrayBalloonTipClicked += OnBalloonTipClicked;
+            _notificationClickSubscribed = true;
+        }
+
+        _taskbarIcon.ShowNotification(title, message, MapNotificationIcon(icon));
+    }
+
+    private void OnBalloonTipClicked(object? sender, EventArgs e)
+    {
+        if (string.IsNullOrEmpty(_pendingNotificationUrl))
+        {
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = _pendingNotificationUrl,
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // Ignore errors opening URL
+        }
+
+        _pendingNotificationUrl = null;
     }
 
     /// <inheritdoc />

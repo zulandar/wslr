@@ -1,8 +1,11 @@
+using System.Net.Http;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Wslr.App.Services;
+using Wslr.Core.Interfaces;
 using Wslr.Infrastructure;
+using Wslr.Infrastructure.Services;
 using Wslr.UI;
 using Wslr.UI.Services;
 using Wslr.UI.ViewModels;
@@ -54,6 +57,20 @@ public partial class App : Application
         services.AddSingleton<ITrayIconService, TrayIconService>();
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<IStartupService, StartupService>();
+
+        // Update checker services
+        services.AddHttpClient("GitHubApi", client =>
+        {
+            client.DefaultRequestHeaders.Add("User-Agent", "Wslr");
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+        services.AddSingleton<IUpdateChecker>(sp =>
+        {
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient("GitHubApi");
+            return new GitHubUpdateChecker(httpClient, "zulandar", "wslr");
+        });
+        services.AddSingleton<IUpdateNotificationService, UpdateNotificationService>();
 
         // Windows
         services.AddSingleton<MainWindow>();
@@ -123,6 +140,9 @@ public partial class App : Application
             {
                 mainWindow.Show();
             }
+
+            // Check for updates in the background (non-blocking)
+            _ = CheckForUpdatesAsync();
         }
         catch (Exception ex)
         {
@@ -134,6 +154,22 @@ public partial class App : Application
         }
 
         base.OnStartup(e);
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            // Delay to let the app fully initialize and not compete with startup
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            var updateService = Services.GetRequiredService<IUpdateNotificationService>();
+            await updateService.CheckAndNotifyAsync();
+        }
+        catch
+        {
+            // Silently ignore any errors - update check should never crash the app
+        }
     }
 
     /// <inheritdoc />
