@@ -61,27 +61,66 @@ public partial class App : Application
     /// <inheritdoc />
     protected override async void OnStartup(StartupEventArgs e)
     {
-        await _host.StartAsync();
+        // Show splash screen immediately
+        var splash = new SplashScreen();
+        splash.Show();
 
-        // Initialize tray icon
-        var trayService = Services.GetRequiredService<ITrayIconService>();
-        trayService.Initialize();
-        trayService.Show();
+        var startTime = DateTime.UtcNow;
+        const int minimumSplashTimeMs = 1500; // Minimum time to show splash
 
-        // Start distribution monitoring (enables auto-refresh for tray and main window)
-        var monitorService = Services.GetRequiredService<IDistributionMonitorService>();
-        monitorService.StartMonitoring();
-
-        // Show main window
-        var mainWindow = Services.GetRequiredService<MainWindow>();
-        mainWindow.Show();
-
-        // Load initial data (monitor service will have already done first refresh)
-        var mainViewModel = Services.GetRequiredService<MainWindowViewModel>();
-        if (mainViewModel.CurrentViewModel is DistributionListViewModel distributionListViewModel)
+        try
         {
-            // Sync the UI checkbox state with monitoring
-            distributionListViewModel.IsAutoRefreshEnabled = true;
+            // Initialize host
+            splash.UpdateStatus("Initializing services...");
+            await _host.StartAsync();
+
+            // Initialize tray icon
+            splash.UpdateStatus("Setting up system tray...");
+            var trayService = Services.GetRequiredService<ITrayIconService>();
+            trayService.Initialize();
+            trayService.Show();
+
+            // Small delay to let UI updates show
+            await Task.Delay(100);
+
+            // Start distribution monitoring
+            splash.UpdateStatus("Connecting to WSL...");
+            var monitorService = Services.GetRequiredService<IDistributionMonitorService>();
+            monitorService.StartMonitoring();
+
+            // Wait for initial refresh to complete
+            splash.UpdateStatus("Loading distributions...");
+            await monitorService.RefreshAsync();
+
+            // Prepare main window
+            splash.UpdateStatus("Ready");
+            var mainWindow = Services.GetRequiredService<MainWindow>();
+
+            // Load initial data
+            var mainViewModel = Services.GetRequiredService<MainWindowViewModel>();
+            if (mainViewModel.CurrentViewModel is DistributionListViewModel distributionListViewModel)
+            {
+                distributionListViewModel.IsAutoRefreshEnabled = true;
+            }
+
+            // Ensure minimum splash time for smooth UX
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            if (elapsed < minimumSplashTimeMs)
+            {
+                await Task.Delay((int)(minimumSplashTimeMs - elapsed));
+            }
+
+            // Fade out splash and show main window
+            await splash.FadeOutAndCloseAsync();
+            mainWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            splash.UpdateStatus($"Error: {ex.Message}");
+            await Task.Delay(3000); // Show error for 3 seconds
+            splash.Close();
+            Shutdown(1);
+            return;
         }
 
         base.OnStartup(e);
