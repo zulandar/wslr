@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using Wslr.App.Helpers;
 using Wslr.UI.Services;
 using Wslr.UI.ViewModels;
 
@@ -31,6 +32,9 @@ public partial class MainWindow : Window
         _viewModel = viewModel;
         _navigationService = navigationService;
         _settingsService = settingsService;
+
+        // Set application icon for taskbar
+        Icon = IconHelper.CreateAppIcon();
 
         // Update maximize icon when window state changes
         StateChanged += MainWindow_StateChanged;
