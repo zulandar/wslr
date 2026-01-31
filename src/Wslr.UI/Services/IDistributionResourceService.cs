@@ -57,4 +57,22 @@ public interface IDistributionResourceService
     /// Clears all CPU tracking state.
     /// </summary>
     void ClearAllCpuState();
+
+    /// <summary>
+    /// Gets the disk usage for a specific distribution.
+    /// </summary>
+    /// <param name="distributionName">The name of the distribution.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The disk usage in GB (used), or null if unavailable.</returns>
+    Task<double?> GetDiskUsageAsync(string distributionName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the disk usage for multiple distributions in parallel.
+    /// </summary>
+    /// <param name="distributionNames">The names of the distributions.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A dictionary mapping distribution names to their disk usage in GB.</returns>
+    Task<IReadOnlyDictionary<string, double?>> GetDiskUsageAsync(
+        IEnumerable<string> distributionNames,
+        CancellationToken cancellationToken = default);
 }

@@ -150,4 +150,60 @@ public class DistributionResourceService : IDistributionResourceService
     {
         _cpuTracker.ClearAll();
     }
+
+    /// <inheritdoc />
+    public async Task<double?> GetDiskUsageAsync(string distributionName, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(distributionName);
+
+        try
+        {
+            var result = await _wslService.ExecuteCommandAsync(
+                distributionName,
+                "df -B1 /",
+                cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return null;
+            }
+
+            var diskUsage = LinuxDiskUsageParser.Parse(result.StandardOutput);
+            return diskUsage?.UsedGb;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            // Distribution may not be running or command failed
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<string, double?>> GetDiskUsageAsync(
+        IEnumerable<string> distributionNames,
+        CancellationToken cancellationToken = default)
+    {
+        var names = distributionNames.ToList();
+        var results = new Dictionary<string, double?>(StringComparer.OrdinalIgnoreCase);
+
+        // Fetch disk usage for all distributions in parallel
+        var tasks = names.Select(async name =>
+        {
+            var disk = await GetDiskUsageAsync(name, cancellationToken);
+            return (Name: name, Disk: disk);
+        });
+
+        var completedTasks = await Task.WhenAll(tasks);
+
+        foreach (var (name, disk) in completedTasks)
+        {
+            results[name] = disk;
+        }
+
+        return results;
+    }
 }

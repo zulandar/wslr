@@ -384,6 +384,18 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Disk" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock HorizontalAlignment="Right"
+                                               Margin="0,0,8,0"
+                                               Visibility="{Binding HasDiskUsage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <Run Text="{Binding DiskUsageGb, StringFormat={}{0:F1}}" />
+                                        <Run Text="GB" Foreground="{StaticResource SecondaryTextBrush}" />
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="Default" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -594,6 +606,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -677,8 +690,24 @@
                                    Visibility="{Binding SelectedDistribution.HasCpuUsage, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}" />
                     </StackPanel>
 
+                    <!-- Disk Usage (row 1) -->
+                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,16,8">
+                        <TextBlock Text="DISK"
+                                   Style="{StaticResource CaptionStrongTextStyle}"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Style="{StaticResource BodyTextStyle}"
+                                   Visibility="{Binding SelectedDistribution.HasDiskUsage, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Run Text="{Binding SelectedDistribution.DiskUsageGb, Mode=OneWay, StringFormat={}{0:F2}}" />
+                            <Run Text="GB" Foreground="{StaticResource SecondaryTextBrush}" />
+                        </TextBlock>
+                        <TextBlock Text="—"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Visibility="{Binding SelectedDistribution.HasDiskUsage, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}" />
+                    </StackPanel>
+
                     <!-- Quick Actions -->
-                    <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
+                    <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
                                 Orientation="Horizontal"
                                 Margin="0,8,0,0">
                         <Button Content="Start"

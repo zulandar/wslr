@@ -29,6 +29,9 @@ public partial class DistributionItemViewModel : ObservableObject
     [ObservableProperty]
     private double? _cpuUsagePercent;
 
+    [ObservableProperty]
+    private double? _diskUsageGb;
+
     /// <summary>
     /// Gets a value indicating whether the distribution is currently running.
     /// </summary>
@@ -43,6 +46,11 @@ public partial class DistributionItemViewModel : ObservableObject
     /// Gets a value indicating whether CPU usage data is available.
     /// </summary>
     public bool HasCpuUsage => CpuUsagePercent.HasValue;
+
+    /// <summary>
+    /// Gets a value indicating whether disk usage data is available.
+    /// </summary>
+    public bool HasDiskUsage => DiskUsageGb.HasValue;
 
     /// <summary>
     /// Gets the display text for the state.
@@ -89,6 +97,7 @@ public partial class DistributionItemViewModel : ObservableObject
         {
             MemoryUsageGb = null;
             CpuUsagePercent = null;
+            DiskUsageGb = null;
         }
 
         OnPropertyChanged(nameof(IsRunning));
@@ -103,5 +112,10 @@ public partial class DistributionItemViewModel : ObservableObject
     partial void OnCpuUsagePercentChanged(double? value)
     {
         OnPropertyChanged(nameof(HasCpuUsage));
+    }
+
+    partial void OnDiskUsageGbChanged(double? value)
+    {
+        OnPropertyChanged(nameof(HasDiskUsage));
     }
 }

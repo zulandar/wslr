@@ -272,9 +272,10 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         // Notify computed properties
         OnPropertyChanged(nameof(RunningCount));
 
-        // Fetch memory and CPU for running distributions in background
+        // Fetch memory, CPU, and disk for running distributions in background
         _ = FetchDistributionMemoryAsync();
         _ = FetchDistributionCpuAsync();
+        _ = FetchDistributionDiskAsync();
     }
 
     private async Task FetchDistributionMemoryAsync()
@@ -361,6 +362,50 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             if (distribution is not null)
             {
                 distribution.CpuUsagePercent = cpu.HasValue ? Math.Round(cpu.Value, 0) : null;
+            }
+        }
+    }
+
+    private async Task FetchDistributionDiskAsync()
+    {
+        var runningDistributions = Distributions.Where(d => d.IsRunning).ToList();
+        if (runningDistributions.Count == 0)
+        {
+            return;
+        }
+
+        var names = runningDistributions.Select(d => d.Name).ToList();
+
+        try
+        {
+            var diskUsages = await _distributionResourceService.GetDiskUsageAsync(names);
+
+            // Update on UI thread
+            if (_synchronizationContext is not null)
+            {
+                _synchronizationContext.Post(_ => ApplyDiskUsages(diskUsages), null);
+            }
+            else
+            {
+                ApplyDiskUsages(diskUsages);
+            }
+        }
+        catch
+        {
+            // Ignore errors fetching disk - it's not critical
+        }
+    }
+
+    private void ApplyDiskUsages(IReadOnlyDictionary<string, double?> diskUsages)
+    {
+        foreach (var (name, disk) in diskUsages)
+        {
+            var distribution = Distributions.FirstOrDefault(d =>
+                d.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (distribution is not null)
+            {
+                distribution.DiskUsageGb = disk.HasValue ? Math.Round(disk.Value, 2) : null;
             }
         }
     }
