@@ -1,4 +1,7 @@
+using System.Drawing;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using H.NotifyIcon;
 using H.NotifyIcon.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +33,7 @@ public class TrayIconService : ITrayIconService, IDisposable
     {
         _taskbarIcon = new TaskbarIcon
         {
+            Icon = CreateTrayIcon(),
             ToolTipText = "WSLR - WSL Instance Manager",
             ContextMenu = CreateContextMenu()
         };
@@ -39,6 +43,36 @@ public class TrayIconService : ITrayIconService, IDisposable
             var navigationService = _serviceProvider.GetRequiredService<INavigationService>();
             navigationService.ShowMainWindow();
         };
+    }
+
+    private static Icon CreateTrayIcon()
+    {
+        const int size = 32;
+
+        // Create a bitmap with the "W" logo
+        using var bitmap = new Bitmap(size, size);
+        using var graphics = Graphics.FromImage(bitmap);
+
+        // Enable anti-aliasing
+        graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+
+        // Fill background with Windows blue (#0078D4)
+        using var backgroundBrush = new SolidBrush(System.Drawing.Color.FromArgb(0, 120, 212));
+        graphics.FillEllipse(backgroundBrush, 1, 1, size - 2, size - 2);
+
+        // Draw "W" in white
+        using var font = new Font("Segoe UI", 14, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel);
+        using var textBrush = new SolidBrush(System.Drawing.Color.White);
+
+        var textSize = graphics.MeasureString("W", font);
+        var x = (size - textSize.Width) / 2;
+        var y = (size - textSize.Height) / 2;
+        graphics.DrawString("W", font, textBrush, x, y);
+
+        // Convert bitmap to icon
+        var hIcon = bitmap.GetHicon();
+        return Icon.FromHandle(hIcon);
     }
 
     /// <inheritdoc />
