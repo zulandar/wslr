@@ -1,0 +1,187 @@
+<UserControl x:Class="Wslr.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="600"
+                    HorizontalAlignment="Left">
+
+            <!-- System Tray Section -->
+            <TextBlock Text="SYSTEM TRAY"
+                       Style="{StaticResource SettingsSectionHeaderStyle}" />
+
+            <!-- Minimize to Tray on Close -->
+            <Border Style="{StaticResource SettingsRowStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Minimize to tray on close"
+                                   Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="Keep running in the background when the window is closed"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <CheckBox Grid.Column="1"
+                              Style="{StaticResource ToggleSwitchStyle}"
+                              IsChecked="{Binding MinimizeToTrayOnClose}"
+                              VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Start Minimized -->
+            <Border Style="{StaticResource SettingsRowStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Start minimized to tray"
+                                   Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="Launch the application hidden in the system tray"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <CheckBox Grid.Column="1"
+                              Style="{StaticResource ToggleSwitchStyle}"
+                              IsChecked="{Binding StartMinimized}"
+                              VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Start with Windows -->
+            <Border Style="{StaticResource SettingsRowStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Start with Windows"
+                                   Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="Automatically launch WSLR when you sign in"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <CheckBox Grid.Column="1"
+                              Style="{StaticResource ToggleSwitchStyle}"
+                              IsChecked="{Binding StartWithWindows}"
+                              VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Show Notifications -->
+            <Border Style="{StaticResource SettingsRowStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Show notifications"
+                                   Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="Display balloon notifications for distribution state changes"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <CheckBox Grid.Column="1"
+                              Style="{StaticResource ToggleSwitchStyle}"
+                              IsChecked="{Binding ShowNotifications}"
+                              VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Monitoring Section -->
+            <TextBlock Text="MONITORING"
+                       Style="{StaticResource SettingsSectionHeaderStyle}"
+                       Margin="0,24,0,12" />
+
+            <!-- Auto-Refresh -->
+            <Border Style="{StaticResource SettingsRowStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Auto-refresh distributions"
+                                   Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="Automatically refresh the distribution list periodically"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <CheckBox Grid.Column="1"
+                              Style="{StaticResource ToggleSwitchStyle}"
+                              IsChecked="{Binding AutoRefreshEnabled}"
+                              VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Refresh Interval (only show when auto-refresh enabled) -->
+            <Border Style="{StaticResource SettingsRowStyle}"
+                    Visibility="{Binding AutoRefreshEnabled, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Refresh interval"
+                                   Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="How often to check for distribution state changes"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <TextBox Text="{Binding AutoRefreshIntervalSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                 Width="50"
+                                 Background="{StaticResource OverlayLight5Brush}"
+                                 Foreground="{StaticResource TextBrush}"
+                                 BorderBrush="{StaticResource BorderBrush}"
+                                 FontFamily="{StaticResource MonoFontFamily}"
+                                 FontSize="14"
+                                 Padding="8,4"
+                                 VerticalContentAlignment="Center"
+                                 HorizontalContentAlignment="Center" />
+                        <TextBlock Text="seconds"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- About Section -->
+            <TextBlock Text="ABOUT"
+                       Style="{StaticResource SettingsSectionHeaderStyle}"
+                       Margin="0,24,0,12" />
+
+            <Border Style="{StaticResource SettingsRowStyle}">
+                <StackPanel>
+                    <TextBlock Text="WSLR - WSL Instance Manager"
+                               Style="{StaticResource BodyStrongTextStyle}" />
+                    <TextBlock Text="Version 1.0.0"
+                               Style="{StaticResource CaptionTextStyle}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

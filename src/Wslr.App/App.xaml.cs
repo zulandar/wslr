@@ -53,6 +53,7 @@ public partial class App : Application
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<ITrayIconService, TrayIconService>();
         services.AddSingleton<ISettingsService, SettingsService>();
+        services.AddSingleton<IStartupService, StartupService>();
 
         // Windows
         services.AddSingleton<MainWindow>();
@@ -92,6 +93,10 @@ public partial class App : Application
             splash.UpdateStatus("Loading distributions...");
             await monitorService.RefreshAsync();
 
+            // Check if we should start minimized to tray
+            var settingsService = Services.GetRequiredService<ISettingsService>();
+            var startMinimized = settingsService.Get(SettingKeys.StartMinimized, false);
+
             // Prepare main window
             splash.UpdateStatus("Ready");
             var mainWindow = Services.GetRequiredService<MainWindow>();
@@ -110,9 +115,14 @@ public partial class App : Application
                 await Task.Delay((int)(minimumSplashTimeMs - elapsed));
             }
 
-            // Fade out splash and show main window
+            // Fade out splash
             await splash.FadeOutAndCloseAsync();
-            mainWindow.Show();
+
+            // Show main window only if not starting minimized
+            if (!startMinimized)
+            {
+                mainWindow.Show();
+            }
         }
         catch (Exception ex)
         {

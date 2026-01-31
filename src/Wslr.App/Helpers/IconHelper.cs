@@ -23,6 +23,17 @@ public static class IconHelper
     /// <returns>The icon as a System.Drawing.Icon.</returns>
     public static Icon CreateTrayIcon(int size = 32)
     {
+        return CreateTrayIcon(TrayIconStatus.Default, size);
+    }
+
+    /// <summary>
+    /// Creates the WSLR application icon with a status indicator.
+    /// </summary>
+    /// <param name="status">The status to indicate.</param>
+    /// <param name="size">The size of the icon in pixels.</param>
+    /// <returns>The icon as a System.Drawing.Icon.</returns>
+    public static Icon CreateTrayIcon(TrayIconStatus status, int size = 32)
+    {
         using var bitmap = new Bitmap(size, size);
         using var graphics = Graphics.FromImage(bitmap);
 
@@ -46,6 +57,28 @@ public static class IconHelper
 
         var rect = new RectangleF(0, 0, size, size);
         graphics.DrawString("W", font, textBrush, rect, format);
+
+        // Draw status indicator dot in bottom-right corner
+        if (status != TrayIconStatus.Default)
+        {
+            var dotSize = size / 3;
+            var dotX = size - dotSize - 1;
+            var dotY = size - dotSize - 1;
+
+            // Draw white outline for visibility
+            using var outlineBrush = new SolidBrush(System.Drawing.Color.White);
+            graphics.FillEllipse(outlineBrush, dotX - 1, dotY - 1, dotSize + 2, dotSize + 2);
+
+            // Draw status dot
+            var dotColor = status switch
+            {
+                TrayIconStatus.Running => System.Drawing.Color.FromArgb(16, 185, 129), // Green
+                TrayIconStatus.Stopped => System.Drawing.Color.FromArgb(107, 114, 128), // Gray
+                _ => System.Drawing.Color.FromArgb(0, 120, 212) // Blue (default)
+            };
+            using var dotBrush = new SolidBrush(dotColor);
+            graphics.FillEllipse(dotBrush, dotX, dotY, dotSize, dotSize);
+        }
 
         // Convert bitmap to icon by saving to memory stream
         // This ensures the icon owns its data and survives bitmap disposal
@@ -117,4 +150,25 @@ public static class IconHelper
 
         return bitmapImage;
     }
+}
+
+/// <summary>
+/// Status indicator for the tray icon.
+/// </summary>
+public enum TrayIconStatus
+{
+    /// <summary>
+    /// Default status (no indicator).
+    /// </summary>
+    Default,
+
+    /// <summary>
+    /// At least one distribution is running (green dot).
+    /// </summary>
+    Running,
+
+    /// <summary>
+    /// All distributions are stopped (gray dot).
+    /// </summary>
+    Stopped
 }

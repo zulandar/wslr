@@ -27,6 +27,17 @@ public interface ITrayIconService
     void UpdateTooltip(string tooltip);
 
     /// <summary>
+    /// Updates the tray icon status indicator.
+    /// </summary>
+    /// <param name="hasRunningDistributions">True if any distributions are running.</param>
+    void UpdateStatus(bool hasRunningDistributions);
+
+    /// <summary>
+    /// Refreshes the context menu with current distribution data.
+    /// </summary>
+    void RefreshContextMenu();
+
+    /// <summary>
     /// Shows a balloon notification.
     /// </summary>
     /// <param name="title">The notification title.</param>
