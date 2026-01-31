@@ -373,6 +373,17 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="CPU" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock HorizontalAlignment="Right"
+                                               Margin="0,0,8,0"
+                                               Visibility="{Binding HasCpuUsage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <Run Text="{Binding CpuUsagePercent, StringFormat={}{0:F0}}" /><Run Text="%" Foreground="{StaticResource SecondaryTextBrush}" />
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="Default" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -651,8 +662,23 @@
                                    Visibility="{Binding SelectedDistribution.HasMemoryUsage, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}" />
                     </StackPanel>
 
+                    <!-- CPU Usage (row 1) -->
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,16,8">
+                        <TextBlock Text="CPU"
+                                   Style="{StaticResource CaptionStrongTextStyle}"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Style="{StaticResource BodyTextStyle}"
+                                   Visibility="{Binding SelectedDistribution.HasCpuUsage, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Run Text="{Binding SelectedDistribution.CpuUsagePercent, Mode=OneWay, StringFormat={}{0:F0}}" /><Run Text="%" Foreground="{StaticResource SecondaryTextBrush}" />
+                        </TextBlock>
+                        <TextBlock Text="—"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Visibility="{Binding SelectedDistribution.HasCpuUsage, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}" />
+                    </StackPanel>
+
                     <!-- Quick Actions -->
-                    <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
+                    <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
                                 Orientation="Horizontal"
                                 Margin="0,8,0,0">
                         <Button Content="Start"

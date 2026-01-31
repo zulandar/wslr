@@ -10,6 +10,7 @@ namespace Wslr.UI.Services;
 public class DistributionResourceService : IDistributionResourceService
 {
     private readonly IWslService _wslService;
+    private readonly DistributionCpuTracker _cpuTracker = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributionResourceService"/> class.
@@ -74,5 +75,79 @@ public class DistributionResourceService : IDistributionResourceService
         }
 
         return results;
+    }
+
+    /// <inheritdoc />
+    public async Task<double?> GetCpuUsageAsync(string distributionName, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(distributionName);
+
+        try
+        {
+            var result = await _wslService.ExecuteCommandAsync(
+                distributionName,
+                "cat /proc/stat",
+                cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return null;
+            }
+
+            var cpuStat = LinuxCpuStatParser.Parse(result.StandardOutput);
+            if (cpuStat is null)
+            {
+                return null;
+            }
+
+            return _cpuTracker.CalculateCpuPercent(distributionName, cpuStat);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            // Distribution may not be running or command failed
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<string, double?>> GetCpuUsageAsync(
+        IEnumerable<string> distributionNames,
+        CancellationToken cancellationToken = default)
+    {
+        var names = distributionNames.ToList();
+        var results = new Dictionary<string, double?>(StringComparer.OrdinalIgnoreCase);
+
+        // Fetch CPU for all distributions in parallel
+        var tasks = names.Select(async name =>
+        {
+            var cpu = await GetCpuUsageAsync(name, cancellationToken);
+            return (Name: name, Cpu: cpu);
+        });
+
+        var completedTasks = await Task.WhenAll(tasks);
+
+        foreach (var (name, cpu) in completedTasks)
+        {
+            results[name] = cpu;
+        }
+
+        return results;
+    }
+
+    /// <inheritdoc />
+    public void ClearCpuState(string distributionName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(distributionName);
+        _cpuTracker.ClearDistribution(distributionName);
+    }
+
+    /// <inheritdoc />
+    public void ClearAllCpuState()
+    {
+        _cpuTracker.ClearAll();
     }
 }

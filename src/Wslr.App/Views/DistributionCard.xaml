@@ -147,6 +147,40 @@
                         <Run Text="GB" />
                     </TextBlock>
                 </StackPanel>
+
+                <!-- CPU usage -->
+                <StackPanel Orientation="Horizontal"
+                            Margin="12,0,0,0"
+                            Visibility="{Binding HasCpuUsage, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="&#xE9D9;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="11"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,4,0" />
+                    <TextBlock Text="{Binding CpuUsagePercent, StringFormat={}{0:F0}%}"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               FontSize="11" />
+                </StackPanel>
+
+                <!-- CPU loading indicator (first sample, no value yet) -->
+                <StackPanel Orientation="Horizontal"
+                            Margin="12,0,0,0"
+                            Visibility="{Binding HasCpuUsage, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}">
+                    <TextBlock Text="&#xE9D9;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="11"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,4,0"
+                               Opacity="0.5" />
+                    <TextBlock Text="—"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               FontSize="11"
+                               Opacity="0.5" />
+                </StackPanel>
             </StackPanel>
 
             <!-- Row 2: Action buttons (hidden by default, shown on hover) -->

@@ -272,8 +272,9 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         // Notify computed properties
         OnPropertyChanged(nameof(RunningCount));
 
-        // Fetch memory for running distributions in background
+        // Fetch memory and CPU for running distributions in background
         _ = FetchDistributionMemoryAsync();
+        _ = FetchDistributionCpuAsync();
     }
 
     private async Task FetchDistributionMemoryAsync()
@@ -316,6 +317,50 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             if (distribution is not null)
             {
                 distribution.MemoryUsageGb = memory.HasValue ? Math.Round(memory.Value, 2) : null;
+            }
+        }
+    }
+
+    private async Task FetchDistributionCpuAsync()
+    {
+        var runningDistributions = Distributions.Where(d => d.IsRunning).ToList();
+        if (runningDistributions.Count == 0)
+        {
+            return;
+        }
+
+        var names = runningDistributions.Select(d => d.Name).ToList();
+
+        try
+        {
+            var cpuUsages = await _distributionResourceService.GetCpuUsageAsync(names);
+
+            // Update on UI thread
+            if (_synchronizationContext is not null)
+            {
+                _synchronizationContext.Post(_ => ApplyCpuUsages(cpuUsages), null);
+            }
+            else
+            {
+                ApplyCpuUsages(cpuUsages);
+            }
+        }
+        catch
+        {
+            // Ignore errors fetching CPU - it's not critical
+        }
+    }
+
+    private void ApplyCpuUsages(IReadOnlyDictionary<string, double?> cpuUsages)
+    {
+        foreach (var (name, cpu) in cpuUsages)
+        {
+            var distribution = Distributions.FirstOrDefault(d =>
+                d.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (distribution is not null)
+            {
+                distribution.CpuUsagePercent = cpu.HasValue ? Math.Round(cpu.Value, 0) : null;
             }
         }
     }
@@ -383,7 +428,12 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
 
         try
         {
-            await _wslService.TerminateDistributionAsync(SelectedDistribution.Name, cancellationToken);
+            var distributionName = SelectedDistribution.Name;
+            await _wslService.TerminateDistributionAsync(distributionName, cancellationToken);
+
+            // Clear CPU tracking state for this distribution
+            _distributionResourceService.ClearCpuState(distributionName);
+
             await _monitorService.RefreshAsync(cancellationToken);
         }
         catch (Exception ex)
@@ -414,7 +464,12 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
 
         try
         {
-            await _wslService.UnregisterDistributionAsync(SelectedDistribution.Name, cancellationToken);
+            var distributionName = SelectedDistribution.Name;
+            await _wslService.UnregisterDistributionAsync(distributionName, cancellationToken);
+
+            // Clear CPU tracking state for this distribution
+            _distributionResourceService.ClearCpuState(distributionName);
+
             await _monitorService.RefreshAsync(cancellationToken);
         }
         catch (Exception ex)
