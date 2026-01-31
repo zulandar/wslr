@@ -14,8 +14,10 @@ namespace Wslr.UI.Services;
 public class ResourceMonitorService : IResourceMonitorService
 {
     private const string LxssRegistryPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss";
-    private const string VmmemProcessName = "vmmem";
     private const double BytesToGb = 1024.0 * 1024.0 * 1024.0;
+
+    // WSL2 VM process names - may be "vmmem" or "vmmemWSL" depending on Windows version
+    private static readonly string[] VmmemProcessNames = ["vmmemWSL", "vmmem"];
 
     private readonly object _lock = new();
     private readonly Dictionary<string, double> _diskUsageCache = new(StringComparer.OrdinalIgnoreCase);
@@ -34,18 +36,22 @@ public class ResourceMonitorService : IResourceMonitorService
     /// </summary>
     public ResourceMonitorService()
     {
-        try
+        // Try to create a performance counter for CPU usage
+        // Try each known vmmem process name until one works
+        foreach (var processName in VmmemProcessNames)
         {
-            // Create a performance counter for CPU usage of the vmmem process
-            // This may fail if performance counters are not available
-            _cpuCounter = new PerformanceCounter("Process", "% Processor Time", VmmemProcessName, true);
-            // First call always returns 0, so initialize it
-            _ = _cpuCounter.NextValue();
-        }
-        catch
-        {
-            // Performance counters not available, will fall back to alternative method
-            _cpuCounter = null;
+            try
+            {
+                _cpuCounter = new PerformanceCounter("Process", "% Processor Time", processName, true);
+                // First call always returns 0, so initialize it
+                _ = _cpuCounter.NextValue();
+                break; // Success, stop trying
+            }
+            catch
+            {
+                _cpuCounter?.Dispose();
+                _cpuCounter = null;
+            }
         }
     }
 
@@ -214,15 +220,20 @@ public class ResourceMonitorService : IResourceMonitorService
     {
         try
         {
-            var processes = Process.GetProcessesByName(VmmemProcessName);
+            // Try each known vmmem process name
+            var allProcesses = new List<Process>();
+            foreach (var processName in VmmemProcessNames)
+            {
+                allProcesses.AddRange(Process.GetProcessesByName(processName));
+            }
 
-            if (processes.Length == 0)
+            if (allProcesses.Count == 0)
             {
                 return (0, 0, false);
             }
 
             double totalMemoryBytes = 0;
-            foreach (var process in processes)
+            foreach (var process in allProcesses)
             {
                 try
                 {
