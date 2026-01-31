@@ -155,14 +155,18 @@ public sealed class DistributionMonitorService : IDistributionMonitorService
         {
             var newDistributions = await _wslService.GetDistributionsAsync(cancellationToken);
 
-            // Build new state dictionary
-            var newStates = newDistributions.ToDictionary(d => d.Name, d => d.State);
+            // Build new state dictionary (use DistinctBy to handle potential duplicates from WSL output parsing)
+            var newStates = newDistributions
+                .DistinctBy(d => d.Name)
+                .ToDictionary(d => d.Name, d => d.State);
 
             // Detect state changes and log them
             DetectAndRaiseStateChanges(newStates);
 
             // Update the observable collection on the UI thread context
-            UpdateDistributionCollection(newDistributions);
+            // Filter duplicates before updating collection (WSL output can sometimes have duplicates)
+            var uniqueDistributions = newDistributions.DistinctBy(d => d.Name).ToList();
+            UpdateDistributionCollection(uniqueDistributions);
 
             // Store current states for next comparison
             _previousStates = newStates;

@@ -25,8 +25,9 @@ public sealed class ProcessRunner : IProcessRunner
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
+            // WSL outputs UTF-16 LE (Unicode), not UTF-8
+            StandardOutputEncoding = Encoding.Unicode,
+            StandardErrorEncoding = Encoding.Unicode
         };
 
         var outputBuilder = new StringBuilder();
@@ -79,8 +80,9 @@ public sealed class ProcessRunner : IProcessRunner
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
+            // WSL outputs UTF-16 LE (Unicode), not UTF-8
+            StandardOutputEncoding = Encoding.Unicode,
+            StandardErrorEncoding = Encoding.Unicode
         };
 
         process.OutputDataReceived += (_, e) =>
