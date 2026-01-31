@@ -14,7 +14,9 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     private readonly IWslService _wslService;
     private readonly IDialogService _dialogService;
     private readonly IDistributionMonitorService _monitorService;
+    private readonly IResourceMonitorService _resourceMonitorService;
     private readonly ISettingsService _settingsService;
+    private readonly SynchronizationContext? _synchronizationContext;
     private readonly HashSet<string> _pinnedNames = new(StringComparer.OrdinalIgnoreCase);
 
     [ObservableProperty]
@@ -53,25 +55,19 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isListView;
 
+    [ObservableProperty]
+    private int _totalCpuUsage;
+
+    [ObservableProperty]
+    private double _totalMemoryUsage;
+
+    [ObservableProperty]
+    private double _totalDiskUsage;
+
     /// <summary>
     /// Gets the count of running distributions.
     /// </summary>
     public int RunningCount => Distributions.Count(d => d.IsRunning);
-
-    /// <summary>
-    /// Gets the total CPU usage across all running distributions.
-    /// </summary>
-    public int TotalCpuUsage => 0; // Placeholder - WSL doesn't expose per-distro CPU
-
-    /// <summary>
-    /// Gets the total memory usage across all running distributions in GB.
-    /// </summary>
-    public double TotalMemoryUsage => 0.0; // Placeholder - WSL doesn't expose per-distro memory
-
-    /// <summary>
-    /// Gets the total disk usage across all distributions in GB.
-    /// </summary>
-    public double TotalDiskUsage => 0.0; // Placeholder - would need to query vhdx sizes
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributionListViewModel"/> class.
@@ -79,24 +75,34 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     /// <param name="wslService">The WSL service.</param>
     /// <param name="dialogService">The dialog service.</param>
     /// <param name="monitorService">The distribution monitor service.</param>
+    /// <param name="resourceMonitorService">The resource monitor service.</param>
     /// <param name="settingsService">The settings service.</param>
     public DistributionListViewModel(
         IWslService wslService,
         IDialogService dialogService,
         IDistributionMonitorService monitorService,
+        IResourceMonitorService resourceMonitorService,
         ISettingsService settingsService)
     {
         _wslService = wslService ?? throw new ArgumentNullException(nameof(wslService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
         _monitorService = monitorService ?? throw new ArgumentNullException(nameof(monitorService));
+        _resourceMonitorService = resourceMonitorService ?? throw new ArgumentNullException(nameof(resourceMonitorService));
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+
+        // Capture the UI thread's synchronization context for thread marshaling
+        _synchronizationContext = SynchronizationContext.Current;
 
         // Subscribe to monitor service events
         _monitorService.DistributionsRefreshed += OnDistributionsRefreshed;
         _monitorService.RefreshError += OnRefreshError;
 
+        // Subscribe to resource monitor events
+        _resourceMonitorService.ResourceUsageUpdated += OnResourceUsageUpdated;
+
         // Sync initial interval
         _monitorService.RefreshIntervalSeconds = _autoRefreshIntervalSeconds;
+        _resourceMonitorService.RefreshIntervalSeconds = _autoRefreshIntervalSeconds;
 
         // Load saved view mode (default to List view)
         var savedViewMode = _settingsService.Get(SettingKeys.ViewMode, "List");
@@ -114,21 +120,47 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void OnResourceUsageUpdated(object? sender, ResourceUsage usage)
+    {
+        // Marshal to UI thread if needed
+        if (_synchronizationContext is not null)
+        {
+            _synchronizationContext.Post(_ =>
+            {
+                UpdateResourceUsageValues(usage);
+            }, null);
+        }
+        else
+        {
+            UpdateResourceUsageValues(usage);
+        }
+    }
+
+    private void UpdateResourceUsageValues(ResourceUsage usage)
+    {
+        TotalCpuUsage = (int)Math.Round(usage.CpuUsagePercent);
+        TotalMemoryUsage = Math.Round(usage.MemoryUsageGb, 1);
+        TotalDiskUsage = Math.Round(usage.TotalDiskUsageGb, 1);
+    }
+
     partial void OnIsAutoRefreshEnabledChanged(bool value)
     {
         if (value)
         {
             _monitorService.StartMonitoring();
+            _resourceMonitorService.StartMonitoring();
         }
         else
         {
             _monitorService.StopMonitoring();
+            _resourceMonitorService.StopMonitoring();
         }
     }
 
     partial void OnAutoRefreshIntervalSecondsChanged(int value)
     {
         _monitorService.RefreshIntervalSeconds = value;
+        _resourceMonitorService.RefreshIntervalSeconds = value;
     }
 
     partial void OnIsGridViewChanged(bool value)
@@ -165,14 +197,38 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
 
     private void OnDistributionsRefreshed(object? sender, EventArgs e)
     {
-        UpdateDistributionsFromMonitor();
-        IsLoading = false;
+        // Marshal to UI thread if needed
+        if (_synchronizationContext is not null)
+        {
+            _synchronizationContext.Post(_ =>
+            {
+                UpdateDistributionsFromMonitor();
+                IsLoading = false;
+            }, null);
+        }
+        else
+        {
+            UpdateDistributionsFromMonitor();
+            IsLoading = false;
+        }
     }
 
     private void OnRefreshError(object? sender, string errorMessage)
     {
-        ErrorMessage = $"Failed to load distributions: {errorMessage}";
-        IsLoading = false;
+        // Marshal to UI thread if needed
+        if (_synchronizationContext is not null)
+        {
+            _synchronizationContext.Post(_ =>
+            {
+                ErrorMessage = $"Failed to load distributions: {errorMessage}";
+                IsLoading = false;
+            }, null);
+        }
+        else
+        {
+            ErrorMessage = $"Failed to load distributions: {errorMessage}";
+            IsLoading = false;
+        }
     }
 
     private void UpdateDistributionsFromMonitor()
@@ -211,9 +267,6 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
 
         // Notify computed properties
         OnPropertyChanged(nameof(RunningCount));
-        OnPropertyChanged(nameof(TotalCpuUsage));
-        OnPropertyChanged(nameof(TotalMemoryUsage));
-        OnPropertyChanged(nameof(TotalDiskUsage));
     }
 
     /// <summary>
@@ -232,7 +285,10 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             IsLoading = true;
             ErrorMessage = null;
 
-            await _monitorService.RefreshAsync(cancellationToken);
+            // Refresh both distributions and resource usage
+            await Task.WhenAll(
+                _monitorService.RefreshAsync(cancellationToken),
+                _resourceMonitorService.RefreshAsync(cancellationToken));
         }
         catch (OperationCanceledException)
         {
@@ -536,5 +592,6 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     {
         _monitorService.DistributionsRefreshed -= OnDistributionsRefreshed;
         _monitorService.RefreshError -= OnRefreshError;
+        _resourceMonitorService.ResourceUsageUpdated -= OnResourceUsageUpdated;
     }
 }

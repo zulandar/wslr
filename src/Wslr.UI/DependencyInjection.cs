@@ -18,6 +18,7 @@ public static class DependencyInjection
     {
         // Services
         services.AddSingleton<IDistributionMonitorService, DistributionMonitorService>();
+        services.AddSingleton<IResourceMonitorService, ResourceMonitorService>();
 
         // ViewModels
         services.AddTransient<DistributionListViewModel>();
