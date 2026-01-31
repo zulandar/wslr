@@ -361,6 +361,18 @@
                         <DataGridTextColumn Header="Version"
                                             Binding="{Binding Version}"
                                             Width="80" />
+                        <DataGridTemplateColumn Header="Memory" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock HorizontalAlignment="Right"
+                                               Margin="0,0,8,0"
+                                               Visibility="{Binding HasMemoryUsage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <Run Text="{Binding MemoryUsageGb, StringFormat={}{0:F1}}" />
+                                        <Run Text="GB" Foreground="{StaticResource SecondaryTextBrush}" />
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="Default" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -623,8 +635,24 @@
                         </TextBlock>
                     </StackPanel>
 
+                    <!-- Memory Usage (row 1) -->
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,16,8">
+                        <TextBlock Text="MEMORY"
+                                   Style="{StaticResource CaptionStrongTextStyle}"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Style="{StaticResource BodyTextStyle}"
+                                   Visibility="{Binding SelectedDistribution.HasMemoryUsage, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Run Text="{Binding SelectedDistribution.MemoryUsageGb, Mode=OneWay, StringFormat={}{0:F2}}" />
+                            <Run Text="GB" Foreground="{StaticResource SecondaryTextBrush}" />
+                        </TextBlock>
+                        <TextBlock Text="—"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Visibility="{Binding SelectedDistribution.HasMemoryUsage, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}" />
+                    </StackPanel>
+
                     <!-- Quick Actions -->
-                    <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
+                    <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
                                 Orientation="Horizontal"
                                 Margin="0,8,0,0">
                         <Button Content="Start"

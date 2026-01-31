@@ -115,7 +115,7 @@
                 </StackPanel>
             </DockPanel>
 
-            <!-- Row 1: Status badge (visible when running) -->
+            <!-- Row 1: Status badge and memory (visible when running) -->
             <StackPanel Grid.Row="1"
                         Orientation="Horizontal"
                         Margin="0,0,0,12"
@@ -129,6 +129,24 @@
                                FontSize="11"
                                FontWeight="Medium" />
                 </Border>
+
+                <!-- Memory usage -->
+                <StackPanel Orientation="Horizontal"
+                            Margin="12,0,0,0"
+                            Visibility="{Binding HasMemoryUsage, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="&#xE7F4;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="11"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,4,0" />
+                    <TextBlock VerticalAlignment="Center"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               FontSize="11">
+                        <Run Text="{Binding MemoryUsageGb, StringFormat={}{0:F1}}" />
+                        <Run Text="GB" />
+                    </TextBlock>
+                </StackPanel>
             </StackPanel>
 
             <!-- Row 2: Action buttons (hidden by default, shown on hover) -->

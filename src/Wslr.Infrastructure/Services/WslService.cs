@@ -1,3 +1,4 @@
+using System.Text;
 using Wslr.Core.Exceptions;
 using Wslr.Core.Interfaces;
 using Wslr.Core.Models;
@@ -248,9 +249,12 @@ public sealed class WslService : IWslService
         ArgumentException.ThrowIfNullOrWhiteSpace(distributionName);
         ArgumentException.ThrowIfNullOrWhiteSpace(command);
 
+        // Commands executed inside WSL distributions output UTF-8 (from Linux),
+        // unlike WSL native commands (--list, etc.) which output UTF-16 LE
         return await _processRunner.RunAsync(
             WslExecutable,
             $"-d {distributionName} -- {command}",
+            Encoding.UTF8,
             cancellationToken);
     }
 }

@@ -1,3 +1,4 @@
+using System.Text;
 using Wslr.Core.Models;
 
 namespace Wslr.Core.Interfaces;
@@ -9,6 +10,7 @@ public interface IProcessRunner
 {
     /// <summary>
     /// Runs a process asynchronously with the specified arguments.
+    /// Uses UTF-16 LE encoding by default (for WSL native commands).
     /// </summary>
     /// <param name="fileName">The name of the executable to run.</param>
     /// <param name="arguments">The command-line arguments.</param>
@@ -17,6 +19,20 @@ public interface IProcessRunner
     Task<ProcessResult> RunAsync(
         string fileName,
         string arguments,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Runs a process asynchronously with the specified arguments and encoding.
+    /// </summary>
+    /// <param name="fileName">The name of the executable to run.</param>
+    /// <param name="arguments">The command-line arguments.</param>
+    /// <param name="outputEncoding">The encoding to use for reading output (null for system default).</param>
+    /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation, containing the process result.</returns>
+    Task<ProcessResult> RunAsync(
+        string fileName,
+        string arguments,
+        Encoding? outputEncoding,
         CancellationToken cancellationToken = default);
 
     /// <summary>

@@ -11,9 +11,20 @@ namespace Wslr.Infrastructure.Services;
 public sealed class ProcessRunner : IProcessRunner
 {
     /// <inheritdoc />
+    public Task<ProcessResult> RunAsync(
+        string fileName,
+        string arguments,
+        CancellationToken cancellationToken = default)
+    {
+        // Default to UTF-16 LE for WSL native commands (--list, --status, etc.)
+        return RunAsync(fileName, arguments, Encoding.Unicode, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task<ProcessResult> RunAsync(
         string fileName,
         string arguments,
+        Encoding? outputEncoding,
         CancellationToken cancellationToken = default)
     {
         using var process = new Process();
@@ -25,9 +36,8 @@ public sealed class ProcessRunner : IProcessRunner
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
-            // WSL outputs UTF-16 LE (Unicode), not UTF-8
-            StandardOutputEncoding = Encoding.Unicode,
-            StandardErrorEncoding = Encoding.Unicode
+            StandardOutputEncoding = outputEncoding,
+            StandardErrorEncoding = outputEncoding
         };
 
         var outputBuilder = new StringBuilder();
