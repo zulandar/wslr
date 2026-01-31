@@ -646,10 +646,19 @@
         <Setter Property="Margin" Value="0,2" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="GroupName" Value="NavigationGroup" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                        <!-- Focus Indicator Border -->
+                        <Border x:Name="FocusBorder"
+                                CornerRadius="10"
+                                BorderThickness="2"
+                                BorderBrush="{StaticResource PrimaryBrush}"
+                                Margin="-2"
+                                Opacity="0" />
                         <!-- Active Indicator Bar -->
                         <Border x:Name="ActiveIndicator"
                                 Width="3"
@@ -782,6 +791,37 @@
                                 </BeginStoryboard>
                             </Trigger.EnterActions>
                         </Trigger>
+                        <!-- Keyboard Focus state -->
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="FocusBorder"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1"
+                                                         Duration="0:0:0.15">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="FocusBorder"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0"
+                                                         Duration="0:0:0.15">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -794,67 +834,94 @@
         <Setter Property="Height" Value="40" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Border"
-                            Width="{TemplateBinding Width}"
-                            Height="{TemplateBinding Height}"
-                            CornerRadius="8">
-                        <Border.Background>
-                            <SolidColorBrush x:Name="BackgroundBrush" Color="Transparent" />
-                        </Border.Background>
-                        <TextBlock x:Name="Icon"
-                                   Text="{TemplateBinding Tag}"
-                                   FontFamily="Segoe MDL2 Assets"
-                                   FontSize="18"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center">
-                            <TextBlock.Foreground>
-                                <SolidColorBrush x:Name="IconBrush" Color="{StaticResource SecondaryTextColor}" />
-                            </TextBlock.Foreground>
-                        </TextBlock>
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="CommonStates">
-                                <VisualStateGroup.Transitions>
-                                    <VisualTransition GeneratedDuration="0:0:0.15">
-                                        <VisualTransition.GeneratedEasingFunction>
-                                            <CubicEase EasingMode="EaseOut" />
-                                        </VisualTransition.GeneratedEasingFunction>
-                                    </VisualTransition>
-                                </VisualStateGroup.Transitions>
-                                <VisualState x:Name="Normal" />
-                                <VisualState x:Name="MouseOver">
-                                    <Storyboard>
-                                        <ColorAnimation Storyboard.TargetName="BackgroundBrush"
-                                                        Storyboard.TargetProperty="Color"
-                                                        To="#0DFFFFFF"
-                                                        Duration="0:0:0.15" />
-                                        <ColorAnimation Storyboard.TargetName="IconBrush"
-                                                        Storyboard.TargetProperty="Color"
-                                                        To="{StaticResource TextColor}"
-                                                        Duration="0:0:0.15" />
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="Pressed">
-                                    <Storyboard>
-                                        <ColorAnimation Storyboard.TargetName="BackgroundBrush"
-                                                        Storyboard.TargetProperty="Color"
-                                                        To="#14FFFFFF"
-                                                        Duration="0:0:0.1" />
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="Disabled">
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="Border"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="0.5"
-                                                         Duration="0:0:0.15" />
-                                    </Storyboard>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-                    </Border>
+                    <Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                        <!-- Focus Indicator Border -->
+                        <Border x:Name="FocusBorder"
+                                CornerRadius="10"
+                                BorderThickness="2"
+                                BorderBrush="{StaticResource PrimaryBrush}"
+                                Margin="-2"
+                                Opacity="0" />
+                        <Border x:Name="Border"
+                                CornerRadius="8">
+                            <Border.Background>
+                                <SolidColorBrush x:Name="BackgroundBrush" Color="Transparent" />
+                            </Border.Background>
+                            <TextBlock x:Name="Icon"
+                                       Text="{TemplateBinding Tag}"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Foreground>
+                                    <SolidColorBrush x:Name="IconBrush" Color="{StaticResource SecondaryTextColor}" />
+                                </TextBlock.Foreground>
+                            </TextBlock>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualStateGroup.Transitions>
+                                        <VisualTransition GeneratedDuration="0:0:0.15">
+                                            <VisualTransition.GeneratedEasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </VisualTransition.GeneratedEasingFunction>
+                                        </VisualTransition>
+                                    </VisualStateGroup.Transitions>
+                                    <VisualState x:Name="Normal" />
+                                    <VisualState x:Name="MouseOver">
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="BackgroundBrush"
+                                                            Storyboard.TargetProperty="Color"
+                                                            To="#0DFFFFFF"
+                                                            Duration="0:0:0.15" />
+                                            <ColorAnimation Storyboard.TargetName="IconBrush"
+                                                            Storyboard.TargetProperty="Color"
+                                                            To="{StaticResource TextColor}"
+                                                            Duration="0:0:0.15" />
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <ColorAnimation Storyboard.TargetName="BackgroundBrush"
+                                                            Storyboard.TargetProperty="Color"
+                                                            To="#14FFFFFF"
+                                                            Duration="0:0:0.1" />
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Border"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.5"
+                                                             Duration="0:0:0.15" />
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="FocusStates">
+                                    <VisualStateGroup.Transitions>
+                                        <VisualTransition GeneratedDuration="0:0:0.15">
+                                            <VisualTransition.GeneratedEasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </VisualTransition.GeneratedEasingFunction>
+                                        </VisualTransition>
+                                    </VisualStateGroup.Transitions>
+                                    <VisualState x:Name="Unfocused" />
+                                    <VisualState x:Name="Focused">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusBorder"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1"
+                                                             Duration="0:0:0.15" />
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                        </Border>
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -1021,6 +1088,90 @@
                 <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!-- ==================== -->
+    <!-- TOGGLE SWITCH        -->
+    <!-- ==================== -->
+
+    <!-- Toggle Switch Style (using CheckBox) -->
+    <Style x:Key="ToggleSwitchStyle" TargetType="CheckBox">
+        <Setter Property="Width" Value="44" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid>
+                        <!-- Track -->
+                        <Border x:Name="Track"
+                                Width="44"
+                                Height="22"
+                                CornerRadius="11"
+                                Background="{StaticResource OverlayLight10Brush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1" />
+                        <!-- Thumb -->
+                        <Border x:Name="Thumb"
+                                Width="16"
+                                Height="16"
+                                CornerRadius="8"
+                                Background="{StaticResource SecondaryTextBrush}"
+                                HorizontalAlignment="Left"
+                                Margin="3,0,0,0">
+                            <Border.RenderTransform>
+                                <TranslateTransform x:Name="ThumbTransform" X="0" />
+                            </Border.RenderTransform>
+                        </Border>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CheckStates">
+                                <VisualStateGroup.Transitions>
+                                    <VisualTransition GeneratedDuration="0:0:0.15">
+                                        <VisualTransition.GeneratedEasingFunction>
+                                            <CubicEase EasingMode="EaseOut" />
+                                        </VisualTransition.GeneratedEasingFunction>
+                                    </VisualTransition>
+                                </VisualStateGroup.Transitions>
+                                <VisualState x:Name="Unchecked" />
+                                <VisualState x:Name="Checked">
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="Track"
+                                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="{StaticResource PrimaryColor}"
+                                                        Duration="0:0:0.15" />
+                                        <ColorAnimation Storyboard.TargetName="Thumb"
+                                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="White"
+                                                        Duration="0:0:0.15" />
+                                        <DoubleAnimation Storyboard.TargetName="ThumbTransform"
+                                                         Storyboard.TargetProperty="X"
+                                                         To="22"
+                                                         Duration="0:0:0.15" />
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Settings Section Header Style -->
+    <Style x:Key="SettingsSectionHeaderStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <!-- Settings Row Style -->
+    <Style x:Key="SettingsRowStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource OverlayLight5Brush}" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
 
 </ResourceDictionary>

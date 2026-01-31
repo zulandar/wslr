@@ -47,4 +47,49 @@ public static class SettingKeys
     /// The auto-refresh interval in seconds.
     /// </summary>
     public const string AutoRefreshIntervalSeconds = "AutoRefreshIntervalSeconds";
+
+    /// <summary>
+    /// Whether to minimize to tray on window close instead of exiting.
+    /// </summary>
+    public const string MinimizeToTrayOnClose = "MinimizeToTrayOnClose";
+
+    /// <summary>
+    /// Whether to start the application minimized to system tray.
+    /// </summary>
+    public const string StartMinimized = "StartMinimized";
+
+    /// <summary>
+    /// Whether to start the application when Windows starts.
+    /// </summary>
+    public const string StartWithWindows = "StartWithWindows";
+
+    /// <summary>
+    /// Whether to show balloon notifications for distribution state changes.
+    /// </summary>
+    public const string ShowNotifications = "ShowNotifications";
+
+    /// <summary>
+    /// The window width in device-independent pixels.
+    /// </summary>
+    public const string WindowWidth = "WindowWidth";
+
+    /// <summary>
+    /// The window height in device-independent pixels.
+    /// </summary>
+    public const string WindowHeight = "WindowHeight";
+
+    /// <summary>
+    /// The window left position in device-independent pixels.
+    /// </summary>
+    public const string WindowLeft = "WindowLeft";
+
+    /// <summary>
+    /// The window top position in device-independent pixels.
+    /// </summary>
+    public const string WindowTop = "WindowTop";
+
+    /// <summary>
+    /// The window state (Normal, Minimized, Maximized).
+    /// </summary>
+    public const string WindowState = "WindowState";
 }
