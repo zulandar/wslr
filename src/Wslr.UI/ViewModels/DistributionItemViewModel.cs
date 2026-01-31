@@ -23,10 +23,18 @@ public partial class DistributionItemViewModel : ObservableObject
     [ObservableProperty]
     private bool _isPinned;
 
+    [ObservableProperty]
+    private double? _memoryUsageGb;
+
     /// <summary>
     /// Gets a value indicating whether the distribution is currently running.
     /// </summary>
     public bool IsRunning => State == DistributionState.Running;
+
+    /// <summary>
+    /// Gets a value indicating whether memory usage data is available.
+    /// </summary>
+    public bool HasMemoryUsage => MemoryUsageGb.HasValue;
 
     /// <summary>
     /// Gets the display text for the state.
@@ -68,7 +76,18 @@ public partial class DistributionItemViewModel : ObservableObject
         Version = distribution.Version;
         IsDefault = distribution.IsDefault;
 
+        // Clear memory usage if distribution is not running
+        if (State != DistributionState.Running)
+        {
+            MemoryUsageGb = null;
+        }
+
         OnPropertyChanged(nameof(IsRunning));
         OnPropertyChanged(nameof(StateText));
+    }
+
+    partial void OnMemoryUsageGbChanged(double? value)
+    {
+        OnPropertyChanged(nameof(HasMemoryUsage));
     }
 }

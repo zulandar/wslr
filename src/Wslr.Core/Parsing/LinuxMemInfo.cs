@@ -1,4 +1,4 @@
-namespace Wslr.Infrastructure.Parsing;
+namespace Wslr.Core.Parsing;
 
 /// <summary>
 /// Represents memory information parsed from Linux /proc/meminfo.

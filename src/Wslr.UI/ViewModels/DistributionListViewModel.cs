@@ -15,6 +15,7 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     private readonly IDialogService _dialogService;
     private readonly IDistributionMonitorService _monitorService;
     private readonly IResourceMonitorService _resourceMonitorService;
+    private readonly IDistributionResourceService _distributionResourceService;
     private readonly ISettingsService _settingsService;
     private readonly SynchronizationContext? _synchronizationContext;
     private readonly HashSet<string> _pinnedNames = new(StringComparer.OrdinalIgnoreCase);
@@ -76,18 +77,21 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     /// <param name="dialogService">The dialog service.</param>
     /// <param name="monitorService">The distribution monitor service.</param>
     /// <param name="resourceMonitorService">The resource monitor service.</param>
+    /// <param name="distributionResourceService">The distribution resource service.</param>
     /// <param name="settingsService">The settings service.</param>
     public DistributionListViewModel(
         IWslService wslService,
         IDialogService dialogService,
         IDistributionMonitorService monitorService,
         IResourceMonitorService resourceMonitorService,
+        IDistributionResourceService distributionResourceService,
         ISettingsService settingsService)
     {
         _wslService = wslService ?? throw new ArgumentNullException(nameof(wslService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
         _monitorService = monitorService ?? throw new ArgumentNullException(nameof(monitorService));
         _resourceMonitorService = resourceMonitorService ?? throw new ArgumentNullException(nameof(resourceMonitorService));
+        _distributionResourceService = distributionResourceService ?? throw new ArgumentNullException(nameof(distributionResourceService));
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
 
         // Capture the UI thread's synchronization context for thread marshaling
@@ -267,6 +271,53 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
 
         // Notify computed properties
         OnPropertyChanged(nameof(RunningCount));
+
+        // Fetch memory for running distributions in background
+        _ = FetchDistributionMemoryAsync();
+    }
+
+    private async Task FetchDistributionMemoryAsync()
+    {
+        var runningDistributions = Distributions.Where(d => d.IsRunning).ToList();
+        if (runningDistributions.Count == 0)
+        {
+            return;
+        }
+
+        var names = runningDistributions.Select(d => d.Name).ToList();
+
+        try
+        {
+            var memoryUsages = await _distributionResourceService.GetMemoryUsageAsync(names);
+
+            // Update on UI thread
+            if (_synchronizationContext is not null)
+            {
+                _synchronizationContext.Post(_ => ApplyMemoryUsages(memoryUsages), null);
+            }
+            else
+            {
+                ApplyMemoryUsages(memoryUsages);
+            }
+        }
+        catch
+        {
+            // Ignore errors fetching memory - it's not critical
+        }
+    }
+
+    private void ApplyMemoryUsages(IReadOnlyDictionary<string, double?> memoryUsages)
+    {
+        foreach (var (name, memory) in memoryUsages)
+        {
+            var distribution = Distributions.FirstOrDefault(d =>
+                d.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (distribution is not null)
+            {
+                distribution.MemoryUsageGb = memory.HasValue ? Math.Round(memory.Value, 2) : null;
+            }
+        }
     }
 
     /// <summary>

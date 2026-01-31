@@ -1,4 +1,4 @@
-using Wslr.Infrastructure.Parsing;
+using Wslr.Core.Parsing;
 
 namespace Wslr.Infrastructure.Tests.Parsing;
 
