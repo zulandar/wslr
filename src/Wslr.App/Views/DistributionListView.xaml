@@ -4,136 +4,566 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Wslr.UI.ViewModels;assembly=Wslr.UI"
+             xmlns:views="clr-namespace:Wslr.App.Views"
+             xmlns:converters="clr-namespace:Wslr.App.Converters"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:DistributionListViewModel}">
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Toolbar -->
-        <Border Grid.Row="0"
-                Background="{StaticResource SurfaceBrush}"
-                Padding="8"
-                Margin="0,0,0,8">
-            <StackPanel Orientation="Horizontal">
-                <Button Content="Refresh"
-                        Command="{Binding LoadDistributionsCommand}"
-                        Style="{StaticResource PrimaryButtonStyle}"
-                        Margin="0,0,8,0" />
-                <Button Content="Start"
-                        Command="{Binding StartDistributionCommand}"
-                        Style="{StaticResource SecondaryButtonStyle}"
-                        Margin="0,0,8,0" />
-                <Button Content="Stop"
-                        Command="{Binding StopDistributionCommand}"
-                        Style="{StaticResource SecondaryButtonStyle}"
-                        Margin="0,0,8,0" />
-                <Button Content="Delete"
-                        Command="{Binding DeleteDistributionCommand}"
-                        Style="{StaticResource DangerButtonStyle}"
-                        Margin="0,0,8,0" />
-                <Separator Margin="8,0" />
-                <Button Content="Shutdown All"
-                        Command="{Binding ShutdownAllCommand}"
-                        Style="{StaticResource SecondaryButtonStyle}" />
-                <Separator Margin="8,0" />
-                <CheckBox Content="Auto-refresh"
-                          IsChecked="{Binding IsAutoRefreshEnabled}"
-                          VerticalAlignment="Center"
-                          Margin="8,0" />
+        <!-- Page Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,20">
+            <StackPanel DockPanel.Dock="Right"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Top">
+                <!-- Import Button -->
+                <Button Style="{StaticResource SecondaryButtonStyle}"
+                        Command="{Binding ImportDistributionCommand}"
+                        Padding="16,10"
+                        Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8B5;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="14"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0" />
+                        <TextBlock Text="Import"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <!-- Install Button -->
+                <Button Style="{StaticResource PrimaryButtonStyle}"
+                        Padding="16,10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE710;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="14"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0" />
+                        <TextBlock Text="Install new"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Foreground="White"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
+            <StackPanel>
+                <TextBlock Text="Distributions"
+                           Style="{StaticResource TitleTextStyle}"
+                           Margin="0,0,0,4" />
+                <TextBlock Style="{StaticResource CaptionTextStyle}">
+                    <Run Text="{Binding RunningCount, Mode=OneWay}" />
+                    <Run Text=" running • " />
+                    <Run Text="{Binding Distributions.Count, Mode=OneWay}" />
+                    <Run Text=" total" />
+                </TextBlock>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Stats Bar -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,20">
+            <!-- CPU Stat -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
+                <Border Width="40" Height="40"
+                        CornerRadius="8"
+                        Background="{StaticResource CpuAccentBackgroundBrush}">
+                    <TextBlock Text="&#xE950;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="18"
+                               Foreground="{StaticResource CpuAccentBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource SubtitleTextStyle}">
+                        <Run Text="{Binding TotalCpuUsage, Mode=OneWay}" /><Run Text="%" />
+                    </TextBlock>
+                    <TextBlock Text="CPU Usage"
+                               Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Memory Stat -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
+                <Border Width="40" Height="40"
+                        CornerRadius="8"
+                        Background="{StaticResource MemoryAccentBackgroundBrush}">
+                    <TextBlock Text="&#xE7F1;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="18"
+                               Foreground="{StaticResource MemoryAccentBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource SubtitleTextStyle}">
+                        <Run Text="{Binding TotalMemoryUsage, Mode=OneWay, StringFormat=N1}" /><Run Text=" GB" />
+                    </TextBlock>
+                    <TextBlock Text="Memory"
+                               Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Disk Stat -->
+            <StackPanel Orientation="Horizontal">
+                <Border Width="40" Height="40"
+                        CornerRadius="8"
+                        Background="{StaticResource DiskAccentBackgroundBrush}">
+                    <TextBlock Text="&#xEDA2;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="18"
+                               Foreground="{StaticResource DiskAccentBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource SubtitleTextStyle}">
+                        <Run Text="{Binding TotalDiskUsage, Mode=OneWay, StringFormat=N1}" /><Run Text=" GB" />
+                    </TextBlock>
+                    <TextBlock Text="Disk Used"
+                               Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Toolbar -->
+        <Border Grid.Row="2"
+                Background="{StaticResource OverlayLight5Brush}"
+                CornerRadius="8"
+                Padding="12"
+                Margin="0,0,0,16">
+            <DockPanel>
+                <!-- Right side: Action buttons -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+
+                    <Button Content="Start"
+                            Command="{Binding StartDistributionCommand}"
+                            Style="{StaticResource SuccessButtonStyle}"
+                            Padding="12,8"
+                            Margin="0,0,8,0" />
+                    <Button Content="Stop"
+                            Command="{Binding StopDistributionCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="12,8"
+                            Margin="0,0,8,0" />
+
+                    <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+
+                    <Button Content="Set Default"
+                            Command="{Binding SetDefaultCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="12,8"
+                            Margin="0,0,8,0" />
+                    <Button Content="Export"
+                            Command="{Binding ExportDistributionCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="12,8"
+                            Margin="0,0,8,0" />
+                    <Button Content="Delete"
+                            Command="{Binding DeleteDistributionCommand}"
+                            Style="{StaticResource DangerButtonStyle}"
+                            Padding="12,8" />
+
+                    <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+
+                    <Button Content="Shutdown All"
+                            Command="{Binding ShutdownAllCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="12,8" />
+                </StackPanel>
+
+                <!-- Left side: Search, filters, view toggles -->
+                <StackPanel Orientation="Horizontal">
+                    <!-- Search -->
+                    <TextBox Style="{StaticResource SearchTextBoxStyle}"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Width="240" />
+
+                    <!-- Filter button -->
+                    <Button Content="&#xE71C;"
+                            Style="{StaticResource ToolbarIconButtonStyle}"
+                            ToolTip="Filter"
+                            Margin="8,0,0,0" />
+
+                    <!-- Sort button -->
+                    <Button Content="&#xE8CB;"
+                            Style="{StaticResource ToolbarIconButtonStyle}"
+                            ToolTip="Sort" />
+
+                    <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+
+                    <!-- View mode toggles -->
+                    <ToggleButton Content="&#xF0E2;"
+                                  Style="{StaticResource ViewModeToggleStyle}"
+                                  IsChecked="{Binding IsGridView}"
+                                  ToolTip="Grid view" />
+                    <ToggleButton Content="&#xE8FD;"
+                                  Style="{StaticResource ViewModeToggleStyle}"
+                                  IsChecked="{Binding IsListView}"
+                                  ToolTip="List view" />
+
+                    <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+
+                    <!-- Refresh -->
+                    <Button Content="&#xE72C;"
+                            Style="{StaticResource ToolbarIconButtonStyle}"
+                            Command="{Binding LoadDistributionsCommand}"
+                            ToolTip="Refresh" />
+
+                    <!-- Auto-refresh toggle -->
+                    <CheckBox Content="Auto"
+                              IsChecked="{Binding IsAutoRefreshEnabled}"
+                              Foreground="{StaticResource SecondaryTextBrush}"
+                              FontFamily="{StaticResource MonoFontFamily}"
+                              FontSize="12"
+                              VerticalAlignment="Center"
+                              Margin="8,0,0,0"
+                              ToolTip="Auto-refresh" />
+                </StackPanel>
+            </DockPanel>
         </Border>
 
-        <!-- Distribution List -->
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding Distributions}"
-                  SelectedItem="{Binding SelectedDistribution}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  SelectionMode="Single"
-                  GridLinesVisibility="Horizontal"
-                  HeadersVisibility="Column"
-                  CanUserAddRows="False"
-                  CanUserDeleteRows="False"
-                  CanUserResizeRows="False"
-                  Background="White"
-                  BorderBrush="{StaticResource BorderBrush}"
-                  BorderThickness="1">
-            <DataGrid.Columns>
-                <DataGridTemplateColumn Header="" Width="32">
-                    <DataGridTemplateColumn.CellTemplate>
+        <!-- Distribution Views Container -->
+        <Grid Grid.Row="3">
+            <!-- Grid View (Cards) -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Visibility="{Binding IsGridView, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ItemsControl ItemsSource="{Binding Distributions}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="3" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Ellipse Width="12" Height="12"
-                                     HorizontalAlignment="Center"
-                                     VerticalAlignment="Center">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="{StaticResource StoppedBrush}" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                                <Setter Property="Fill" Value="{StaticResource RunningBrush}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
+                            <views:DistributionCard Margin="6" />
                         </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Name"
-                                    Binding="{Binding Name}"
-                                    Width="*"
-                                    MinWidth="150" />
-                <DataGridTextColumn Header="State"
-                                    Binding="{Binding StateText}"
-                                    Width="100" />
-                <DataGridTextColumn Header="Version"
-                                    Binding="{Binding Version}"
-                                    Width="70" />
-                <DataGridTemplateColumn Header="Default" Width="70">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="Default"
-                                       Visibility="{Binding IsDefault, Converter={StaticResource BoolToVisibilityConverter}}"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{StaticResource PrimaryBrush}"
-                                       FontWeight="SemiBold" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
 
-            <DataGrid.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="Start" Command="{Binding StartDistributionCommand}" />
-                    <MenuItem Header="Stop" Command="{Binding StopDistributionCommand}" />
-                    <Separator />
-                    <MenuItem Header="Delete" Command="{Binding DeleteDistributionCommand}" />
-                </ContextMenu>
-            </DataGrid.ContextMenu>
-        </DataGrid>
+            <!-- List View (DataGrid) -->
+            <Border Background="{StaticResource OverlayLight5Brush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Visibility="{Binding IsListView, Converter={StaticResource BoolToVisibilityConverter}}">
+                <DataGrid ItemsSource="{Binding Distributions}"
+                          SelectedItem="{Binding SelectedDistribution}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          SelectionMode="Single"
+                          HeadersVisibility="Column"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          CanUserResizeRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="" Width="40">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Ellipse Width="10" Height="10"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource StoppedBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                        <Setter Property="Fill" Value="{StaticResource RunningBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Name"
+                                            Binding="{Binding Name}"
+                                            Width="*"
+                                            MinWidth="150" />
+                        <DataGridTextColumn Header="State"
+                                            Binding="{Binding StateText}"
+                                            Width="100" />
+                        <DataGridTextColumn Header="Version"
+                                            Binding="{Binding Version}"
+                                            Width="80" />
+                        <DataGridTemplateColumn Header="Default" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="Default"
+                                               Visibility="{Binding IsDefault, Converter={StaticResource BoolToVisibilityConverter}}"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{StaticResource PrimaryBrush}"
+                                               FontFamily="{StaticResource MonoFontFamily}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Actions" Width="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="Open"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Padding="8,4"
+                                            FontSize="12"
+                                            Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
 
-        <!-- Loading/Error Overlay -->
-        <Grid Grid.Row="1"
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Start" Command="{Binding StartDistributionCommand}">
+                                <MenuItem.Icon>
+                                    <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Stop" Command="{Binding StopDistributionCommand}">
+                                <MenuItem.Icon>
+                                    <TextBlock Text="&#xE71A;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="Set as Default" Command="{Binding SetDefaultCommand}">
+                                <MenuItem.Icon>
+                                    <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Export..." Command="{Binding ExportDistributionCommand}">
+                                <MenuItem.Icon>
+                                    <TextBlock Text="&#xEDE1;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="Delete" Command="{Binding DeleteDistributionCommand}">
+                                <MenuItem.Icon>
+                                    <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+                </DataGrid>
+            </Border>
+        </Grid>
+
+        <!-- Loading Overlay -->
+        <Grid Grid.Row="3"
               Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
-            <Border Background="White" Opacity="0.8" />
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Text="Loading..." FontSize="16" />
+            <Border Background="{StaticResource BackgroundBrush}"
+                    Opacity="0.85"
+                    CornerRadius="8" />
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                <!-- Animated Spinner -->
+                <Grid Width="32" Height="32" Margin="0,0,0,12">
+                    <!-- Spinner arc using Path -->
+                    <Path x:Name="SpinnerPath"
+                          Stroke="{StaticResource PrimaryBrush}"
+                          StrokeThickness="3"
+                          StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round"
+                          RenderTransformOrigin="0.5,0.5">
+                        <Path.Data>
+                            <!-- Arc: 270 degrees of a circle with radius 12, centered at 16,16 -->
+                            <PathGeometry>
+                                <PathFigure StartPoint="16,4" IsClosed="False">
+                                    <ArcSegment Point="4,16"
+                                                Size="12,12"
+                                                SweepDirection="Clockwise"
+                                                IsLargeArc="False" />
+                                    <ArcSegment Point="16,28"
+                                                Size="12,12"
+                                                SweepDirection="Clockwise"
+                                                IsLargeArc="False" />
+                                    <ArcSegment Point="28,16"
+                                                Size="12,12"
+                                                SweepDirection="Clockwise"
+                                                IsLargeArc="False" />
+                                </PathFigure>
+                            </PathGeometry>
+                        </Path.Data>
+                        <Path.RenderTransform>
+                            <RotateTransform x:Name="SpinnerRotation" Angle="0" />
+                        </Path.RenderTransform>
+                        <Path.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetName="SpinnerRotation"
+                                                         Storyboard.TargetProperty="Angle"
+                                                         From="0"
+                                                         To="360"
+                                                         Duration="0:0:1" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Path.Triggers>
+                    </Path>
+                </Grid>
+                <TextBlock Text="Loading..."
+                           Style="{StaticResource BodyTextStyle}"
+                           Foreground="{StaticResource SecondaryTextBrush}" />
             </StackPanel>
         </Grid>
 
+        <!-- Distribution Details Panel -->
+        <Border Grid.Row="4"
+                Background="{StaticResource OverlayLight5Brush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16"
+                Margin="0,16,0,0"
+                Visibility="{Binding SelectedDistribution, Converter={StaticResource NullToVisibilityConverter}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Status indicator and title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Border Width="48" Height="48"
+                            CornerRadius="8"
+                            Margin="0,0,16,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{StaticResource StoppedBackgroundBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedDistribution.IsRunning}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource RunningBackgroundBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="&#xE756;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="24"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource StoppedBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedDistribution.IsRunning}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource RunningBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+                </StackPanel>
+
+                <!-- Details grid -->
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Name -->
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,16,8">
+                        <TextBlock Text="NAME"
+                                   Style="{StaticResource CaptionStrongTextStyle}"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Text="{Binding SelectedDistribution.Name}"
+                                   Style="{StaticResource BodyStrongTextStyle}" />
+                    </StackPanel>
+
+                    <!-- State -->
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,16,8">
+                        <TextBlock Text="STATE"
+                                   Style="{StaticResource CaptionStrongTextStyle}"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Text="{Binding SelectedDistribution.StateText}"
+                                   Style="{StaticResource BodyTextStyle}" />
+                    </StackPanel>
+
+                    <!-- WSL Version -->
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,16,8">
+                        <TextBlock Text="WSL VERSION"
+                                   Style="{StaticResource CaptionStrongTextStyle}"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Style="{StaticResource BodyTextStyle}">
+                            <Run Text="WSL " /><Run Text="{Binding SelectedDistribution.Version, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+
+                    <!-- Default Status -->
+                    <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,0,8">
+                        <TextBlock Text="DEFAULT"
+                                   Style="{StaticResource CaptionStrongTextStyle}"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Style="{StaticResource BodyTextStyle}">
+                            <TextBlock.Text>
+                                <Binding Path="SelectedDistribution.IsDefault">
+                                    <Binding.Converter>
+                                        <converters:BoolToTextConverter TrueText="Yes" FalseText="No" />
+                                    </Binding.Converter>
+                                </Binding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <!-- Quick Actions -->
+                    <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
+                                Orientation="Horizontal"
+                                Margin="0,8,0,0">
+                        <Button Content="Start"
+                                Command="{Binding StartDistributionCommand}"
+                                Style="{StaticResource SuccessButtonStyle}"
+                                Padding="16,8"
+                                Margin="0,0,8,0" />
+                        <Button Content="Stop"
+                                Command="{Binding StopDistributionCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Padding="16,8"
+                                Margin="0,0,8,0" />
+                        <Button Content="Export"
+                                Command="{Binding ExportDistributionCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Padding="16,8"
+                                Margin="0,0,8,0" />
+                        <Button Content="Set as Default"
+                                Command="{Binding SetDefaultCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Padding="16,8" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
         <!-- Error Message -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="5"
                 Background="{StaticResource ErrorBackgroundBrush}"
-                Padding="8"
-                Margin="0,8,0,0"
+                CornerRadius="6"
+                Padding="12"
+                Margin="0,16,0,0"
                 Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}">
             <TextBlock Text="{Binding ErrorMessage}"
                        Foreground="{StaticResource ErrorTextBrush}"
+                       Style="{StaticResource BodyTextStyle}"
                        TextWrapping="Wrap" />
         </Border>
     </Grid>

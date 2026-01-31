@@ -9,11 +9,12 @@ namespace Wslr.UI.ViewModels;
 /// <summary>
 /// ViewModel for the distribution list view.
 /// </summary>
-public partial class DistributionListViewModel : ObservableObject
+public partial class DistributionListViewModel : ObservableObject, IDisposable
 {
     private readonly IWslService _wslService;
     private readonly IDialogService _dialogService;
-    private System.Timers.Timer? _refreshTimer;
+    private readonly IDistributionMonitorService _monitorService;
+    private readonly ISettingsService _settingsService;
 
     [ObservableProperty]
     private ObservableCollection<DistributionItemViewModel> _distributions = [];
@@ -33,35 +34,161 @@ public partial class DistributionListViewModel : ObservableObject
     [ObservableProperty]
     private int _autoRefreshIntervalSeconds = 5;
 
+    [ObservableProperty]
+    private string? _searchText;
+
+    [ObservableProperty]
+    private bool _isGridView;
+
+    [ObservableProperty]
+    private bool _isListView;
+
+    /// <summary>
+    /// Gets the count of running distributions.
+    /// </summary>
+    public int RunningCount => Distributions.Count(d => d.IsRunning);
+
+    /// <summary>
+    /// Gets the total CPU usage across all running distributions.
+    /// </summary>
+    public int TotalCpuUsage => 0; // Placeholder - WSL doesn't expose per-distro CPU
+
+    /// <summary>
+    /// Gets the total memory usage across all running distributions in GB.
+    /// </summary>
+    public double TotalMemoryUsage => 0.0; // Placeholder - WSL doesn't expose per-distro memory
+
+    /// <summary>
+    /// Gets the total disk usage across all distributions in GB.
+    /// </summary>
+    public double TotalDiskUsage => 0.0; // Placeholder - would need to query vhdx sizes
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributionListViewModel"/> class.
     /// </summary>
     /// <param name="wslService">The WSL service.</param>
     /// <param name="dialogService">The dialog service.</param>
-    public DistributionListViewModel(IWslService wslService, IDialogService dialogService)
+    /// <param name="monitorService">The distribution monitor service.</param>
+    /// <param name="settingsService">The settings service.</param>
+    public DistributionListViewModel(
+        IWslService wslService,
+        IDialogService dialogService,
+        IDistributionMonitorService monitorService,
+        ISettingsService settingsService)
     {
         _wslService = wslService ?? throw new ArgumentNullException(nameof(wslService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        _monitorService = monitorService ?? throw new ArgumentNullException(nameof(monitorService));
+        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+
+        // Subscribe to monitor service events
+        _monitorService.DistributionsRefreshed += OnDistributionsRefreshed;
+        _monitorService.RefreshError += OnRefreshError;
+
+        // Sync initial interval
+        _monitorService.RefreshIntervalSeconds = _autoRefreshIntervalSeconds;
+
+        // Load saved view mode (default to List view)
+        var savedViewMode = _settingsService.Get(SettingKeys.ViewMode, "List");
+        _isGridView = savedViewMode == "Grid";
+        _isListView = savedViewMode != "Grid";
     }
 
     partial void OnIsAutoRefreshEnabledChanged(bool value)
     {
         if (value)
         {
-            StartAutoRefresh();
+            _monitorService.StartMonitoring();
         }
         else
         {
-            StopAutoRefresh();
+            _monitorService.StopMonitoring();
         }
     }
 
     partial void OnAutoRefreshIntervalSecondsChanged(int value)
     {
-        if (_refreshTimer is not null && IsAutoRefreshEnabled)
+        _monitorService.RefreshIntervalSeconds = value;
+    }
+
+    partial void OnIsGridViewChanged(bool value)
+    {
+        if (value && IsListView)
         {
-            _refreshTimer.Interval = value * 1000;
+#pragma warning disable MVVMTK0034
+            SetProperty(ref _isListView, false, nameof(IsListView));
+#pragma warning restore MVVMTK0034
         }
+
+        if (value)
+        {
+            _settingsService.Set(SettingKeys.ViewMode, "Grid");
+            _settingsService.Save();
+        }
+    }
+
+    partial void OnIsListViewChanged(bool value)
+    {
+        if (value && IsGridView)
+        {
+#pragma warning disable MVVMTK0034
+            SetProperty(ref _isGridView, false, nameof(IsGridView));
+#pragma warning restore MVVMTK0034
+        }
+
+        if (value)
+        {
+            _settingsService.Set(SettingKeys.ViewMode, "List");
+            _settingsService.Save();
+        }
+    }
+
+    private void OnDistributionsRefreshed(object? sender, EventArgs e)
+    {
+        UpdateDistributionsFromMonitor();
+        IsLoading = false;
+    }
+
+    private void OnRefreshError(object? sender, string errorMessage)
+    {
+        ErrorMessage = $"Failed to load distributions: {errorMessage}";
+        IsLoading = false;
+    }
+
+    private void UpdateDistributionsFromMonitor()
+    {
+        var monitorDistributions = _monitorService.Distributions;
+        var existingNames = Distributions.Select(d => d.Name).ToHashSet();
+        var newNames = monitorDistributions.Select(d => d.Name).ToHashSet();
+
+        // Remove distributions that no longer exist
+        var toRemove = Distributions.Where(d => !newNames.Contains(d.Name)).ToList();
+        foreach (var item in toRemove)
+        {
+            Distributions.Remove(item);
+        }
+
+        // Update or add distributions
+        foreach (var distribution in monitorDistributions)
+        {
+            var existing = Distributions.FirstOrDefault(d => d.Name == distribution.Name);
+            if (existing is not null)
+            {
+                existing.UpdateFromModel(distribution);
+            }
+            else
+            {
+                Distributions.Add(DistributionItemViewModel.FromModel(distribution));
+            }
+        }
+
+        ErrorMessage = null;
+
+        // Notify computed properties
+        OnPropertyChanged(nameof(RunningCount));
+        OnPropertyChanged(nameof(TotalCpuUsage));
+        OnPropertyChanged(nameof(TotalMemoryUsage));
+        OnPropertyChanged(nameof(TotalDiskUsage));
     }
 
     /// <summary>
@@ -80,43 +207,11 @@ public partial class DistributionListViewModel : ObservableObject
             IsLoading = true;
             ErrorMessage = null;
 
-            var distributions = await _wslService.GetDistributionsAsync(cancellationToken);
-
-            // Update existing items or add new ones
-            var existingNames = Distributions.Select(d => d.Name).ToHashSet();
-            var newNames = distributions.Select(d => d.Name).ToHashSet();
-
-            // Remove distributions that no longer exist
-            var toRemove = Distributions.Where(d => !newNames.Contains(d.Name)).ToList();
-            foreach (var item in toRemove)
-            {
-                Distributions.Remove(item);
-            }
-
-            // Update or add distributions
-            foreach (var distribution in distributions)
-            {
-                var existing = Distributions.FirstOrDefault(d => d.Name == distribution.Name);
-                if (existing is not null)
-                {
-                    existing.UpdateFromModel(distribution);
-                }
-                else
-                {
-                    Distributions.Add(DistributionItemViewModel.FromModel(distribution));
-                }
-            }
+            await _monitorService.RefreshAsync(cancellationToken);
         }
         catch (OperationCanceledException)
         {
             // Ignore cancellation
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Failed to load distributions: {ex.Message}";
-        }
-        finally
-        {
             IsLoading = false;
         }
     }
@@ -135,7 +230,7 @@ public partial class DistributionListViewModel : ObservableObject
         try
         {
             await _wslService.StartDistributionAsync(SelectedDistribution.Name, cancellationToken);
-            await LoadDistributionsAsync(cancellationToken);
+            await _monitorService.RefreshAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -157,7 +252,7 @@ public partial class DistributionListViewModel : ObservableObject
         try
         {
             await _wslService.TerminateDistributionAsync(SelectedDistribution.Name, cancellationToken);
-            await LoadDistributionsAsync(cancellationToken);
+            await _monitorService.RefreshAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -188,7 +283,7 @@ public partial class DistributionListViewModel : ObservableObject
         try
         {
             await _wslService.UnregisterDistributionAsync(SelectedDistribution.Name, cancellationToken);
-            await LoadDistributionsAsync(cancellationToken);
+            await _monitorService.RefreshAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -205,7 +300,7 @@ public partial class DistributionListViewModel : ObservableObject
         try
         {
             await _wslService.ShutdownAsync(cancellationToken);
-            await LoadDistributionsAsync(cancellationToken);
+            await _monitorService.RefreshAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -213,23 +308,148 @@ public partial class DistributionListViewModel : ObservableObject
         }
     }
 
-    private void StartAutoRefresh()
+    /// <summary>
+    /// Sets the selected distribution as the default.
+    /// </summary>
+    [RelayCommand]
+    private async Task SetDefaultAsync(CancellationToken cancellationToken = default)
     {
-        StopAutoRefresh();
-
-        _refreshTimer = new System.Timers.Timer(AutoRefreshIntervalSeconds * 1000);
-        _refreshTimer.Elapsed += async (_, _) =>
+        if (SelectedDistribution is null || SelectedDistribution.IsDefault)
         {
-            await LoadDistributionsAsync();
-        };
-        _refreshTimer.Start();
+            return;
+        }
+
+        try
+        {
+            await _wslService.SetDefaultDistributionAsync(SelectedDistribution.Name, cancellationToken);
+            await _monitorService.RefreshAsync(cancellationToken);
+            await _dialogService.ShowInfoAsync("Default Set", $"{SelectedDistribution.Name} is now the default distribution.");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to set default: {ex.Message}";
+        }
     }
 
-    private void StopAutoRefresh()
+    /// <summary>
+    /// Exports the selected distribution to a tar file.
+    /// </summary>
+    [RelayCommand]
+    private async Task ExportDistributionAsync(CancellationToken cancellationToken = default)
     {
-        _refreshTimer?.Stop();
-        _refreshTimer?.Dispose();
-        _refreshTimer = null;
+        if (SelectedDistribution is null)
+        {
+            return;
+        }
+
+        var defaultFileName = $"{SelectedDistribution.Name}-{DateTime.Now:yyyy-MM-dd}.tar";
+        var filePath = await _dialogService.ShowSaveFileDialogAsync(
+            "Export Distribution",
+            defaultFileName,
+            "Tar files|*.tar|All files|*.*");
+
+        if (string.IsNullOrEmpty(filePath))
+        {
+            return;
+        }
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+
+            await _wslService.ExportDistributionAsync(SelectedDistribution.Name, filePath, null, cancellationToken);
+            await _dialogService.ShowInfoAsync("Export Complete", $"Distribution exported to:\n{filePath}");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to export distribution: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Imports a distribution from a tar file.
+    /// </summary>
+    [RelayCommand]
+    private async Task ImportDistributionAsync(CancellationToken cancellationToken = default)
+    {
+        // Select tar file
+        var tarPath = await _dialogService.ShowOpenFileDialogAsync(
+            "Select Distribution Archive",
+            "Tar files|*.tar|All files|*.*");
+
+        if (string.IsNullOrEmpty(tarPath))
+        {
+            return;
+        }
+
+        // Get distribution name from user
+        var fileName = System.IO.Path.GetFileNameWithoutExtension(tarPath);
+        // Remove date suffix if present (e.g., "Ubuntu-2026-01-31" -> "Ubuntu")
+        var suggestedName = System.Text.RegularExpressions.Regex.Replace(fileName, @"-\d{4}-\d{2}-\d{2}$", "");
+
+        // For now, use a simple approach - in future could have a full dialog
+        // Check if name already exists
+        var existingNames = Distributions.Select(d => d.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var baseName = suggestedName;
+        var counter = 1;
+        while (existingNames.Contains(suggestedName))
+        {
+            suggestedName = $"{baseName}-{counter++}";
+        }
+
+        // Select install location
+        var defaultLocation = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "wsl",
+            suggestedName);
+
+        var installLocation = await _dialogService.ShowFolderBrowserDialogAsync("Select Install Location");
+
+        if (string.IsNullOrEmpty(installLocation))
+        {
+            // User cancelled, use default
+            installLocation = defaultLocation;
+        }
+
+        // Confirm import
+        var confirmed = await _dialogService.ShowConfirmationAsync(
+            "Import Distribution",
+            $"Import distribution with the following settings?\n\n" +
+            $"Name: {suggestedName}\n" +
+            $"Source: {tarPath}\n" +
+            $"Location: {installLocation}\n" +
+            $"WSL Version: 2");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+
+            // Ensure install directory exists
+            System.IO.Directory.CreateDirectory(installLocation);
+
+            await _wslService.ImportDistributionAsync(suggestedName, installLocation, tarPath, 2, null, cancellationToken);
+            await _monitorService.RefreshAsync(cancellationToken);
+            await _dialogService.ShowInfoAsync("Import Complete", $"Distribution '{suggestedName}' imported successfully.");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to import distribution: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     /// <summary>
@@ -237,6 +457,7 @@ public partial class DistributionListViewModel : ObservableObject
     /// </summary>
     public void Dispose()
     {
-        StopAutoRefresh();
+        _monitorService.DistributionsRefreshed -= OnDistributionsRefreshed;
+        _monitorService.RefreshError -= OnRefreshError;
     }
 }

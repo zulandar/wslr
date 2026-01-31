@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Wslr.UI.Services;
 using Wslr.UI.ViewModels;
 
 namespace Wslr.UI;
@@ -15,6 +16,9 @@ public static class DependencyInjection
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddUI(this IServiceCollection services)
     {
+        // Services
+        services.AddSingleton<IDistributionMonitorService, DistributionMonitorService>();
+
         // ViewModels
         services.AddTransient<DistributionListViewModel>();
         services.AddTransient<MainWindowViewModel>();

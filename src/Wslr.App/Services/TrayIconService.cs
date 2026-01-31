@@ -69,7 +69,7 @@ public class TrayIconService : ITrayIconService, IDisposable
     }
 
     /// <inheritdoc />
-    public void ShowBalloonTip(string title, string message, NotificationIcon icon = NotificationIcon.Info)
+    public void ShowBalloonTip(string title, string message, UI.Services.NotificationIcon icon = UI.Services.NotificationIcon.Info)
     {
         _taskbarIcon?.ShowNotification(title, message, MapNotificationIcon(icon));
     }
@@ -129,14 +129,14 @@ public class TrayIconService : ITrayIconService, IDisposable
         return menu;
     }
 
-    private static NotificationIconType MapNotificationIcon(NotificationIcon icon)
+    private static H.NotifyIcon.Core.NotificationIcon MapNotificationIcon(UI.Services.NotificationIcon icon)
     {
         return icon switch
         {
-            NotificationIcon.Info => NotificationIconType.Info,
-            NotificationIcon.Warning => NotificationIconType.Warning,
-            NotificationIcon.Error => NotificationIconType.Error,
-            _ => NotificationIconType.None
+            UI.Services.NotificationIcon.Info => H.NotifyIcon.Core.NotificationIcon.Info,
+            UI.Services.NotificationIcon.Warning => H.NotifyIcon.Core.NotificationIcon.Warning,
+            UI.Services.NotificationIcon.Error => H.NotifyIcon.Core.NotificationIcon.Error,
+            _ => H.NotifyIcon.Core.NotificationIcon.None
         };
     }
 }

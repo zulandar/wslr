@@ -23,6 +23,9 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = viewModel;
         _navigationService = navigationService;
+
+        // Update maximize icon when window state changes
+        StateChanged += MainWindow_StateChanged;
     }
 
     /// <summary>
@@ -41,5 +44,30 @@ public partial class MainWindow : Window
             e.Cancel = true;
             _navigationService.HideMainWindow();
         }
+    }
+
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void MaximizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    private void MainWindow_StateChanged(object? sender, EventArgs e)
+    {
+        // Update the maximize/restore icon based on window state
+        // E922 = Maximize, E923 = Restore
+        MaximizeIcon.Text = WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
+        MaximizeButton.ToolTip = WindowState == WindowState.Maximized ? "Restore" : "Maximize";
     }
 }

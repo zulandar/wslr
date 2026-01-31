@@ -52,6 +52,7 @@ public partial class App : Application
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<ITrayIconService, TrayIconService>();
+        services.AddSingleton<ISettingsService, SettingsService>();
 
         // Windows
         services.AddSingleton<MainWindow>();
@@ -67,15 +68,20 @@ public partial class App : Application
         trayService.Initialize();
         trayService.Show();
 
+        // Start distribution monitoring (enables auto-refresh for tray and main window)
+        var monitorService = Services.GetRequiredService<IDistributionMonitorService>();
+        monitorService.StartMonitoring();
+
         // Show main window
         var mainWindow = Services.GetRequiredService<MainWindow>();
         mainWindow.Show();
 
-        // Load initial data
+        // Load initial data (monitor service will have already done first refresh)
         var mainViewModel = Services.GetRequiredService<MainWindowViewModel>();
         if (mainViewModel.CurrentViewModel is DistributionListViewModel distributionListViewModel)
         {
-            await distributionListViewModel.LoadDistributionsCommand.ExecuteAsync(null);
+            // Sync the UI checkbox state with monitoring
+            distributionListViewModel.IsAutoRefreshEnabled = true;
         }
 
         base.OnStartup(e);
@@ -84,6 +90,11 @@ public partial class App : Application
     /// <inheritdoc />
     protected override async void OnExit(ExitEventArgs e)
     {
+        // Stop monitoring
+        var monitorService = Services.GetRequiredService<IDistributionMonitorService>();
+        monitorService.Dispose();
+
+        // Dispose tray icon
         var trayService = Services.GetRequiredService<ITrayIconService>();
         trayService.Dispose();
 
