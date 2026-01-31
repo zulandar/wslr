@@ -17,7 +17,7 @@ public static class LinuxDiskUsageParser
             return null;
         }
 
-        var lines = dfOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = dfOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
 
         // Need at least header + data line
         if (lines.Length < 2)
@@ -52,7 +52,7 @@ public static class LinuxDiskUsageParser
             return null;
         }
 
-        var lines = dfOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = dfOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
 
         // Find the line mounted on "/"
         foreach (var line in lines.Skip(1)) // Skip header
