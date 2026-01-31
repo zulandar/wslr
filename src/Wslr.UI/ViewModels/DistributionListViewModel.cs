@@ -15,9 +15,19 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     private readonly IDialogService _dialogService;
     private readonly IDistributionMonitorService _monitorService;
     private readonly ISettingsService _settingsService;
+    private readonly HashSet<string> _pinnedNames = new(StringComparer.OrdinalIgnoreCase);
 
     [ObservableProperty]
     private ObservableCollection<DistributionItemViewModel> _distributions = [];
+
+    [ObservableProperty]
+    private ObservableCollection<DistributionItemViewModel> _pinnedDistributions = [];
+
+    [ObservableProperty]
+    private ObservableCollection<DistributionItemViewModel> _unpinnedDistributions = [];
+
+    [ObservableProperty]
+    private bool _hasPinnedDistributions;
 
     [ObservableProperty]
     private DistributionItemViewModel? _selectedDistribution;
@@ -92,6 +102,16 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         var savedViewMode = _settingsService.Get(SettingKeys.ViewMode, "List");
         _isGridView = savedViewMode == "Grid";
         _isListView = savedViewMode != "Grid";
+
+        // Load pinned distributions
+        var pinnedCsv = _settingsService.Get(SettingKeys.PinnedDistributions, string.Empty);
+        if (!string.IsNullOrEmpty(pinnedCsv))
+        {
+            foreach (var name in pinnedCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                _pinnedNames.Add(name);
+            }
+        }
     }
 
     partial void OnIsAutoRefreshEnabledChanged(bool value)
@@ -171,18 +191,23 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         // Update or add distributions
         foreach (var distribution in monitorDistributions)
         {
+            var isPinned = _pinnedNames.Contains(distribution.Name);
             var existing = Distributions.FirstOrDefault(d => d.Name == distribution.Name);
             if (existing is not null)
             {
                 existing.UpdateFromModel(distribution);
+                existing.IsPinned = isPinned;
             }
             else
             {
-                Distributions.Add(DistributionItemViewModel.FromModel(distribution));
+                Distributions.Add(DistributionItemViewModel.FromModel(distribution, isPinned));
             }
         }
 
         ErrorMessage = null;
+
+        // Rebuild filtered collections for pinned/unpinned
+        RebuildFilteredCollections();
 
         // Notify computed properties
         OnPropertyChanged(nameof(RunningCount));
@@ -306,6 +331,58 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         {
             ErrorMessage = $"Failed to shutdown WSL: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// Toggles the pinned state for a distribution.
+    /// </summary>
+    /// <param name="distribution">The distribution to toggle.</param>
+    [RelayCommand]
+    private void TogglePin(DistributionItemViewModel? distribution)
+    {
+        if (distribution is null)
+        {
+            return;
+        }
+
+        if (_pinnedNames.Contains(distribution.Name))
+        {
+            _pinnedNames.Remove(distribution.Name);
+            distribution.IsPinned = false;
+        }
+        else
+        {
+            _pinnedNames.Add(distribution.Name);
+            distribution.IsPinned = true;
+        }
+
+        // Save to settings
+        var pinnedCsv = string.Join(",", _pinnedNames);
+        _settingsService.Set(SettingKeys.PinnedDistributions, pinnedCsv);
+        _settingsService.Save();
+
+        // Rebuild filtered collections
+        RebuildFilteredCollections();
+    }
+
+    private void RebuildFilteredCollections()
+    {
+        PinnedDistributions.Clear();
+        UnpinnedDistributions.Clear();
+
+        foreach (var dist in Distributions)
+        {
+            if (dist.IsPinned)
+            {
+                PinnedDistributions.Add(dist);
+            }
+            else
+            {
+                UnpinnedDistributions.Add(dist);
+            }
+        }
+
+        HasPinnedDistributions = PinnedDistributions.Count > 0;
     }
 
     /// <summary>

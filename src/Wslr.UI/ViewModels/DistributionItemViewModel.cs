@@ -20,6 +20,9 @@ public partial class DistributionItemViewModel : ObservableObject
     [ObservableProperty]
     private bool _isDefault;
 
+    [ObservableProperty]
+    private bool _isPinned;
+
     /// <summary>
     /// Gets a value indicating whether the distribution is currently running.
     /// </summary>
@@ -40,15 +43,17 @@ public partial class DistributionItemViewModel : ObservableObject
     /// Creates a new instance from a domain model.
     /// </summary>
     /// <param name="distribution">The domain model.</param>
+    /// <param name="isPinned">Whether this distribution is pinned.</param>
     /// <returns>A new ViewModel instance.</returns>
-    public static DistributionItemViewModel FromModel(WslDistribution distribution)
+    public static DistributionItemViewModel FromModel(WslDistribution distribution, bool isPinned = false)
     {
         return new DistributionItemViewModel
         {
             Name = distribution.Name,
             State = distribution.State,
             Version = distribution.Version,
-            IsDefault = distribution.IsDefault
+            IsDefault = distribution.IsDefault,
+            IsPinned = isPinned
         };
     }
 

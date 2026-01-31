@@ -92,4 +92,9 @@ public static class SettingKeys
     /// The window state (Normal, Minimized, Maximized).
     /// </summary>
     public const string WindowState = "WindowState";
+
+    /// <summary>
+    /// Comma-separated list of pinned distribution names.
+    /// </summary>
+    public const string PinnedDistributions = "PinnedDistributions";
 }
