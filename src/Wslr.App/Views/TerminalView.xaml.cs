@@ -141,63 +141,115 @@ public partial class TerminalView : UserControl
 
     private void OnTabAdded(TerminalTabViewModel tab)
     {
+        System.Diagnostics.Debug.WriteLine($"[Terminal] OnTabAdded: {tab.Id}");
         Dispatcher.BeginInvoke(() =>
         {
-            CreateTerminalControl(tab);
+            try
+            {
+                CreateTerminalControl(tab);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Terminal] ERROR in OnTabAdded: {ex}");
+            }
         });
     }
 
     private void OnTabRemoved(TerminalTabViewModel tab)
     {
+        System.Diagnostics.Debug.WriteLine($"[Terminal] OnTabRemoved: {tab.Id}");
         Dispatcher.BeginInvoke(() =>
         {
-            RemoveTerminalControl(tab);
+            try
+            {
+                RemoveTerminalControl(tab);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Terminal] ERROR in OnTabRemoved: {ex}");
+            }
         });
     }
 
     private void OnActiveTabChanged(TerminalTabViewModel? tab)
     {
+        System.Diagnostics.Debug.WriteLine($"[Terminal] OnActiveTabChanged: {tab?.Id ?? "null"}");
         Dispatcher.BeginInvoke(() =>
         {
-            if (tab != null)
+            try
             {
-                ActivateTerminalControl(tab);
-            }
-            else
-            {
-                // No active tab - hide all terminals
-                foreach (var control in _terminalControls.Values)
+                if (tab != null)
                 {
-                    control.Visibility = Visibility.Collapsed;
+                    ActivateTerminalControl(tab);
                 }
-                _activeTerminal = null;
+                else
+                {
+                    // No active tab - hide all terminals
+                    foreach (var control in _terminalControls.Values)
+                    {
+                        control.Visibility = Visibility.Collapsed;
+                    }
+                    _activeTerminal = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Terminal] ERROR in OnActiveTabChanged: {ex}");
             }
         });
     }
 
     private void CreateTerminalControl(TerminalTabViewModel tab)
     {
-        if (_terminalControls.ContainsKey(tab.Id))
+        try
         {
-            return;
+            if (_terminalControls.ContainsKey(tab.Id))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Terminal] Control already exists for tab {tab.Id}");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[Terminal] Creating control for tab {tab.Id} ({tab.DistributionName})");
+
+            var terminal = new TerminalControl
+            {
+                Visibility = Visibility.Collapsed
+            };
+
+            // Wire up events
+            terminal.InputReceived += (_, input) => OnTerminalInput(tab, input);
+            terminal.Resized += (_, e) => OnTerminalResized(tab, e);
+            terminal.Ready += (_, _) => OnTerminalReady(tab, terminal);
+
+            // Subscribe to tab output
+            tab.OutputReceived += output => OnTabOutput(tab, terminal, output);
+            tab.SessionExited += exitCode => OnTabSessionExited(tab, terminal, exitCode);
+
+            // Subscribe to IsConnected changes to ensure terminal is visible when connected
+            tab.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(TerminalTabViewModel.IsConnected) && tab.IsConnected)
+                {
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Terminal] Tab {tab.Id} connected, ensuring visibility");
+                        if (_viewModel?.ActiveTab == tab && _terminalControls.TryGetValue(tab.Id, out var ctrl))
+                        {
+                            ctrl.Visibility = Visibility.Visible;
+                        }
+                    });
+                }
+            };
+
+            _terminalControls[tab.Id] = terminal;
+            TerminalContainer.Children.Add(terminal);
+            System.Diagnostics.Debug.WriteLine($"[Terminal] Control created and added for tab {tab.Id}");
         }
-
-        var terminal = new TerminalControl
+        catch (Exception ex)
         {
-            Visibility = Visibility.Collapsed
-        };
-
-        // Wire up events
-        terminal.InputReceived += (_, input) => OnTerminalInput(tab, input);
-        terminal.Resized += (_, e) => OnTerminalResized(tab, e);
-        terminal.Ready += (_, _) => OnTerminalReady(tab, terminal);
-
-        // Subscribe to tab output
-        tab.OutputReceived += output => OnTabOutput(tab, terminal, output);
-        tab.SessionExited += exitCode => OnTabSessionExited(tab, terminal, exitCode);
-
-        _terminalControls[tab.Id] = terminal;
-        TerminalContainer.Children.Add(terminal);
+            System.Diagnostics.Debug.WriteLine($"[Terminal] ERROR creating control: {ex}");
+            throw;
+        }
     }
 
     private void RemoveTerminalControl(TerminalTabViewModel tab)

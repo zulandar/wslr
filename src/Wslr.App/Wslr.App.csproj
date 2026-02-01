@@ -22,7 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Assets\Terminal\**\*" />
+    <!-- Terminal assets need to be copied to output for WebView2 virtual host mapping -->
+    <Content Include="Assets\Terminal\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

@@ -45,7 +45,10 @@ public partial class TerminalControl : UserControl
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (_isInitialized) return;
+        if (_isInitialized)
+        {
+            return;
+        }
         _isInitialized = true;
 
         try
@@ -79,98 +82,19 @@ public partial class TerminalControl : UserControl
         coreWebView.Settings.IsZoomControlEnabled = false;
         coreWebView.Settings.AreDefaultContextMenusEnabled = false;
 
+        // Set up virtual host for local assets
+        var assetsPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "Assets", "Terminal");
+        coreWebView.SetVirtualHostNameToFolderMapping("wslr.local", assetsPath, CoreWebView2HostResourceAccessKind.Allow);
+
         // Handle messages from JavaScript
         coreWebView.WebMessageReceived += OnWebMessageReceived;
 
-        // Load the terminal HTML
-        var html = GetTerminalHtml();
-        coreWebView.NavigateToString(html);
+        // Navigate to local terminal.html via virtual host
+        coreWebView.Navigate("https://wslr.local/terminal.html");
 
         // Show the WebView
         LoadingPanel.Visibility = Visibility.Collapsed;
         TerminalWebView.Visibility = Visibility.Visible;
-    }
-
-    private string GetTerminalHtml()
-    {
-        // Try to load from embedded resource
-        var assembly = Assembly.GetExecutingAssembly();
-        var resourceName = "Wslr.App.Assets.Terminal.terminal.html";
-
-        using var stream = assembly.GetManifestResourceStream(resourceName);
-        if (stream != null)
-        {
-            using var reader = new StreamReader(stream);
-            return reader.ReadToEnd();
-        }
-
-        // Fallback: try to load from file (for development)
-        var assemblyLocation = Path.GetDirectoryName(assembly.Location) ?? ".";
-        var filePath = Path.Combine(assemblyLocation, "Assets", "Terminal", "terminal.html");
-
-        if (File.Exists(filePath))
-        {
-            return File.ReadAllText(filePath);
-        }
-
-        // Embedded fallback HTML with CDN references
-        return GetFallbackHtml();
-    }
-
-    private static string GetFallbackHtml()
-    {
-        return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css" />
-                <style>
-                    body { margin: 0; background: #1a1a1a; height: 100vh; }
-                    #terminal { height: 100%; width: 100%; }
-                </style>
-            </head>
-            <body>
-                <div id="terminal"></div>
-                <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
-                <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
-                <script>
-                    const theme = {
-                        background: '#1a1a1a', foreground: '#e0e0e0', cursor: '#60a5fa',
-                        black: '#1a1a1a', red: '#f87171', green: '#4ade80', yellow: '#facc15',
-                        blue: '#60a5fa', magenta: '#c084fc', cyan: '#22d3ee', white: '#e0e0e0',
-                        brightBlack: '#404040', brightRed: '#fca5a5', brightGreen: '#86efac',
-                        brightYellow: '#fde047', brightBlue: '#93c5fd', brightMagenta: '#d8b4fe',
-                        brightCyan: '#67e8f9', brightWhite: '#ffffff',
-                    };
-                    const terminal = new Terminal({
-                        theme, fontFamily: 'Cascadia Code, Consolas, monospace',
-                        fontSize: 14, cursorBlink: true, scrollback: 10000
-                    });
-                    const fitAddon = new FitAddon.FitAddon();
-                    terminal.loadAddon(fitAddon);
-                    terminal.open(document.getElementById('terminal'));
-                    setTimeout(() => fitAddon.fit(), 0);
-                    new ResizeObserver(() => fitAddon.fit()).observe(document.getElementById('terminal'));
-                    terminal.onData(data => {
-                        if (window.chrome?.webview) {
-                            window.chrome.webview.postMessage(JSON.stringify({ type: 'input', data }));
-                        }
-                    });
-                    if (window.chrome?.webview) {
-                        window.chrome.webview.addEventListener('message', e => {
-                            const msg = JSON.parse(e.data);
-                            if (msg.type === 'output') terminal.write(msg.data);
-                            else if (msg.type === 'clear') terminal.clear();
-                        });
-                        window.chrome.webview.postMessage(JSON.stringify({
-                            type: 'ready', data: { cols: terminal.cols, rows: terminal.rows }
-                        }));
-                    }
-                </script>
-            </body>
-            </html>
-            """;
     }
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
@@ -292,7 +216,10 @@ public partial class TerminalControl : UserControl
 
     private void SendMessage(string type, object? data)
     {
-        if (TerminalWebView.CoreWebView2 == null) return;
+        if (TerminalWebView.CoreWebView2 == null)
+        {
+            return;
+        }
 
         var message = data != null
             ? JsonSerializer.Serialize(new { type, data })

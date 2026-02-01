@@ -712,16 +712,27 @@
                     <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
                                 Orientation="Horizontal"
                                 Margin="0,8,0,0">
+                        <!-- Terminal button (only for running distributions) -->
+                        <Button Content="Terminal"
+                                Command="{Binding OpenTerminalCommand}"
+                                CommandParameter="{Binding SelectedDistribution}"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Padding="16,8"
+                                Margin="0,0,8,0"
+                                Visibility="{Binding SelectedDistribution.IsRunning, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <!-- Start button (only for stopped distributions) -->
                         <Button Content="Start"
                                 Command="{Binding StartDistributionCommand}"
                                 Style="{StaticResource SuccessButtonStyle}"
                                 Padding="16,8"
-                                Margin="0,0,8,0" />
+                                Margin="0,0,8,0"
+                                Visibility="{Binding SelectedDistribution.IsRunning, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}" />
                         <Button Content="Stop"
                                 Command="{Binding StopDistributionCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}"
                                 Padding="16,8"
-                                Margin="0,0,8,0" />
+                                Margin="0,0,8,0"
+                                Visibility="{Binding SelectedDistribution.IsRunning, Converter={StaticResource BoolToVisibilityConverter}}" />
                         <Button Content="Export"
                                 Command="{Binding ExportDistributionCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}"

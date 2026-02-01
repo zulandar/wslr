@@ -14,6 +14,12 @@ public partial class DistributionItemViewModel : ObservableObject
     [ObservableProperty]
     private DistributionState _state;
 
+    partial void OnStateChanged(DistributionState value)
+    {
+        OnPropertyChanged(nameof(IsRunning));
+        OnPropertyChanged(nameof(StateText));
+    }
+
     [ObservableProperty]
     private int _version;
 

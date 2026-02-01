@@ -11,6 +11,8 @@ namespace Wslr.UI.ViewModels;
 public partial class TerminalTabViewModel : ObservableObject, IAsyncDisposable
 {
     private ITerminalSession? _session;
+    private readonly Queue<string> _pendingOutput = new();
+    private bool _hasSubscribers;
 
     /// <summary>
     /// Gets the unique identifier for this tab.
@@ -37,10 +39,28 @@ public partial class TerminalTabViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     private string? _errorMessage;
 
+    private Action<string>? _outputReceived;
+
     /// <summary>
     /// Raised when output is received from the terminal.
+    /// Buffered output is flushed when the first subscriber attaches.
     /// </summary>
-    public event Action<string>? OutputReceived;
+    public event Action<string>? OutputReceived
+    {
+        add
+        {
+            _outputReceived += value;
+            if (value != null && !_hasSubscribers)
+            {
+                _hasSubscribers = true;
+                FlushPendingOutput();
+            }
+        }
+        remove
+        {
+            _outputReceived -= value;
+        }
+    }
 
     /// <summary>
     /// Raised when the terminal session exits.
@@ -96,7 +116,6 @@ public partial class TerminalTabViewModel : ObservableObject, IAsyncDisposable
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to connect: {ex.Message}";
-            Debug.WriteLine($"Terminal connection error: {ex}");
         }
         finally
         {
@@ -216,7 +235,24 @@ public partial class TerminalTabViewModel : ObservableObject, IAsyncDisposable
 
     private void OnOutputReceived(string output)
     {
-        OutputReceived?.Invoke(output);
+        if (_hasSubscribers)
+        {
+            _outputReceived?.Invoke(output);
+        }
+        else
+        {
+            // Buffer output until a subscriber attaches
+            _pendingOutput.Enqueue(output);
+        }
+    }
+
+    private void FlushPendingOutput()
+    {
+        while (_pendingOutput.Count > 0)
+        {
+            var output = _pendingOutput.Dequeue();
+            _outputReceived?.Invoke(output);
+        }
     }
 
     private void OnSessionExited(int exitCode)

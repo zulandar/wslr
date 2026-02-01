@@ -49,7 +49,9 @@ public sealed class WslTerminalSession : ITerminalSession
             StartInfo = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                Arguments = $"-d {distributionName}",
+                // Use 'script' to create a pseudo-terminal for proper interactive shell behavior
+                // -q = quiet mode, /dev/null = don't save typescript file
+                Arguments = $"-d {distributionName} -- script -q /dev/null",
                 UseShellExecute = false,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
@@ -62,10 +64,13 @@ public sealed class WslTerminalSession : ITerminalSession
         };
 
         _process.Exited += OnProcessExited;
-
         _process.Start();
-        _stdin = _process.StandardInput;
-        _stdin.AutoFlush = true;
+
+        // Use UTF-8 for stdin to match the shell's expected encoding
+        _stdin = new StreamWriter(_process.StandardInput.BaseStream, Encoding.UTF8)
+        {
+            AutoFlush = true
+        };
 
         // Start reading output asynchronously
         _outputTask = ReadOutputAsync(_process.StandardOutput, _cts.Token);
@@ -84,7 +89,6 @@ public sealed class WslTerminalSession : ITerminalSession
 
                 if (bytesRead == 0)
                 {
-                    // End of stream
                     break;
                 }
 
@@ -136,11 +140,6 @@ public sealed class WslTerminalSession : ITerminalSession
         // send SIGWINCH to the terminal. This would require using ConPTY.
         // For now, we just store the dimensions. Applications that query
         // terminal size directly (like vim) may not resize properly.
-        //
-        // A workaround is to set COLUMNS and LINES environment variables
-        // or use the 'stty' command, but these have limitations.
-        //
-        // TODO: Consider implementing ConPTY for proper resize support.
 
         return Task.CompletedTask;
     }

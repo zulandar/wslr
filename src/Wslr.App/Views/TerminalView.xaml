@@ -78,7 +78,7 @@
                                                         <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+                                                                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
                                                                 <Setter Property="FontWeight" Value="SemiBold" />
                                                             </DataTrigger>
                                                         </Style.Triggers>

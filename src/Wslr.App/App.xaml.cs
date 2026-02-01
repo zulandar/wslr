@@ -135,6 +135,32 @@ public partial class App : Application
     /// <inheritdoc />
     protected override async void OnStartup(StartupEventArgs e)
     {
+        // Set up global exception handling
+        DispatcherUnhandledException += (sender, args) =>
+        {
+            Log.Error(args.Exception, "Unhandled exception in dispatcher");
+            MessageBox.Show(
+                $"An error occurred:\n\n{args.Exception.Message}\n\nSee logs for details.",
+                "WSLR Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            args.Handled = true;
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+            {
+                Log.Fatal(ex, "Fatal unhandled exception");
+            }
+        };
+
+        TaskScheduler.UnobservedTaskException += (sender, args) =>
+        {
+            Log.Error(args.Exception, "Unobserved task exception");
+            args.SetObserved();
+        };
+
         // Log startup
         var version = Assembly.GetEntryAssembly()?.GetName().Version;
         var versionString = version is not null ? $"v{version.Major}.{version.Minor}.{version.Build}" : "unknown";

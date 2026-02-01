@@ -78,16 +78,14 @@ public partial class TerminalViewModel : ObservableObject, IAsyncDisposable
             Tabs.Add(tab);
             TabAdded?.Invoke(tab);
 
-            // Activate the new tab
             ActivateTab(tab);
 
-            // Connect the session
             await tab.ConnectAsync(_sessionService);
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to open terminal: {ex.Message}";
-            Debug.WriteLine($"Terminal open error: {ex}");
+            Debug.WriteLine($"Error opening terminal tab: {ex}");
         }
     }
 

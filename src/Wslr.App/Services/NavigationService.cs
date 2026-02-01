@@ -77,11 +77,26 @@ public class NavigationService : INavigationService
     /// <inheritdoc />
     public void NavigateToTerminal(string distributionName)
     {
-        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+        System.Diagnostics.Debug.WriteLine($"[NavigationService] NavigateToTerminal called for: {distributionName}");
 
-        if (mainWindow.DataContext is MainWindowViewModel mainViewModel)
+        try
         {
-            mainViewModel.NavigateToTerminal(distributionName);
+            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+
+            if (mainWindow.DataContext is MainWindowViewModel mainViewModel)
+            {
+                System.Diagnostics.Debug.WriteLine("[NavigationService] Calling MainWindowViewModel.NavigateToTerminal");
+                mainViewModel.NavigateToTerminal(distributionName);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[NavigationService] ERROR: DataContext is not MainWindowViewModel");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[NavigationService] ERROR: {ex}");
+            throw;
         }
     }
 }
