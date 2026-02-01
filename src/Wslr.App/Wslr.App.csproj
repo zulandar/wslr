@@ -22,11 +22,24 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Terminal assets need to be copied to output for WebView2 virtual host mapping -->
-    <Content Include="Assets\Terminal\**\*">
+    <!-- Terminal assets - only include built output and HTML, not source or node_modules -->
+    <Content Include="Assets\Terminal\terminal.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\Terminal\dist\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <!-- Exclude node_modules and source from project -->
+    <None Remove="Assets\Terminal\node_modules\**" />
+    <None Remove="Assets\Terminal\src\**" />
   </ItemGroup>
+
+  <!-- Build terminal bundle before .NET build -->
+  <Target Name="BuildTerminalBundle" BeforeTargets="BeforeBuild">
+    <Message Text="Building terminal bundle..." Importance="high" />
+    <Exec Command="npm install" WorkingDirectory="$(ProjectDir)Assets\Terminal" />
+    <Exec Command="npm run build" WorkingDirectory="$(ProjectDir)Assets\Terminal" />
+  </Target>
 
   <ItemGroup>
     <ProjectReference Include="..\Wslr.Core\Wslr.Core.csproj" />

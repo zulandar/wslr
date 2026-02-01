@@ -1,0 +1,17 @@
+{
+  "name": "wslr-terminal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Terminal bundle for WSLR WebView2 integration",
+  "scripts": {
+    "build": "esbuild src/terminal-bundle.js --bundle --minify --outfile=dist/terminal.bundle.js && npm run copy-css",
+    "copy-css": "node -e \"require('fs').copyFileSync('node_modules/@xterm/xterm/css/xterm.css', 'dist/xterm.css')\""
+  },
+  "dependencies": {
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}
