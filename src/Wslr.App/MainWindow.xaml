@@ -45,6 +45,9 @@
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
             <views:SettingsView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ScriptEditorViewModel}">
+            <views:ScriptEditorView />
+        </DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -168,6 +171,13 @@
                                  IsChecked="{Binding SelectedNavigationIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=2}"
                                  Command="{Binding NavigateToInstallCommand}"
                                  ToolTip="Install" />
+
+                    <!-- Scripts -->
+                    <RadioButton Style="{StaticResource NavItemStyle}"
+                                 Tag="&#xE943;"
+                                 IsChecked="{Binding SelectedNavigationIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=3}"
+                                 Command="{Binding NavigateToScriptsCommand}"
+                                 ToolTip="Scripts" />
                 </StackPanel>
             </DockPanel>
         </Border>

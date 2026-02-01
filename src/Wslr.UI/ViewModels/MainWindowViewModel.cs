@@ -19,8 +19,11 @@ public enum NavigationPage
     /// <summary>Install/Download page.</summary>
     Install = 2,
 
+    /// <summary>Scripts page.</summary>
+    Scripts = 3,
+
     /// <summary>Settings page.</summary>
-    Settings = 3
+    Settings = 4
 }
 
 /// <summary>
@@ -31,6 +34,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly INavigationService _navigationService;
     private readonly DistributionListViewModel _distributionListViewModel;
     private readonly TerminalViewModel _terminalViewModel;
+    private readonly ScriptEditorViewModel _scriptEditorViewModel;
     private readonly SettingsViewModel _settingsViewModel;
 
     [ObservableProperty]
@@ -67,16 +71,19 @@ public partial class MainWindowViewModel : ObservableObject
     /// <param name="navigationService">The navigation service.</param>
     /// <param name="distributionListViewModel">The distribution list ViewModel.</param>
     /// <param name="terminalViewModel">The terminal ViewModel.</param>
+    /// <param name="scriptEditorViewModel">The script editor ViewModel.</param>
     /// <param name="settingsViewModel">The settings ViewModel.</param>
     public MainWindowViewModel(
         INavigationService navigationService,
         DistributionListViewModel distributionListViewModel,
         TerminalViewModel terminalViewModel,
+        ScriptEditorViewModel scriptEditorViewModel,
         SettingsViewModel settingsViewModel)
     {
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _distributionListViewModel = distributionListViewModel ?? throw new ArgumentNullException(nameof(distributionListViewModel));
         _terminalViewModel = terminalViewModel ?? throw new ArgumentNullException(nameof(terminalViewModel));
+        _scriptEditorViewModel = scriptEditorViewModel ?? throw new ArgumentNullException(nameof(scriptEditorViewModel));
         _settingsViewModel = settingsViewModel ?? throw new ArgumentNullException(nameof(settingsViewModel));
         CurrentViewModel = _distributionListViewModel;
         _selectedNavigationIndex = (int)NavigationPage.Distributions;
@@ -123,6 +130,17 @@ public partial class MainWindowViewModel : ObservableObject
         SelectedNavigationIndex = (int)NavigationPage.Install;
         CurrentPageTitle = "Install";
         CurrentViewModel = new PlaceholderViewModel("Install", "Download and install new WSL distributions.");
+    }
+
+    /// <summary>
+    /// Navigates to the scripts view.
+    /// </summary>
+    [RelayCommand]
+    private void NavigateToScripts()
+    {
+        SelectedNavigationIndex = (int)NavigationPage.Scripts;
+        CurrentPageTitle = "Scripts";
+        CurrentViewModel = _scriptEditorViewModel;
     }
 
     /// <summary>

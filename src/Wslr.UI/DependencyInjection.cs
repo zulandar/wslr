@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<TemplateListViewModel>();
         services.AddTransient<ProfileListViewModel>();
+        services.AddTransient<ScriptEditorViewModel>();
 
         return services;
     }

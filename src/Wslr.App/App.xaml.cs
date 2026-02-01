@@ -166,8 +166,8 @@ public partial class App : Application
         var versionString = version is not null ? $"v{version.Major}.{version.Minor}.{version.Build}" : "unknown";
         Log.Information("WSLR {Version} starting on {OS}", versionString, Environment.OSVersion);
 
-        // Show splash screen immediately
-        var splash = new SplashScreen();
+        // Show splash screen on a separate thread for smooth animations
+        using var splash = new SplashScreenManager();
         splash.Show();
 
         var startTime = DateTime.UtcNow;
@@ -190,9 +190,6 @@ public partial class App : Application
             trayService.Initialize();
             trayService.Show();
 
-            // Small delay to let UI updates show
-            await Task.Delay(100);
-
             // Start distribution monitoring
             splash.UpdateStatus("Connecting to WSL...");
             var monitorService = Services.GetRequiredService<IDistributionMonitorService>();
@@ -205,11 +202,12 @@ public partial class App : Application
             // Check if we should start minimized to tray
             var startMinimized = settingsService.Get(SettingKeys.StartMinimized, false);
 
-            // Prepare main window
-            splash.UpdateStatus("Ready");
+            // Prepare main window (heavy XAML initialization)
+            splash.UpdateStatus("Preparing interface...");
             var mainWindow = Services.GetRequiredService<MainWindow>();
 
             // Load initial data
+            splash.UpdateStatus("Ready");
             var mainViewModel = Services.GetRequiredService<MainWindowViewModel>();
             if (mainViewModel.CurrentViewModel is DistributionListViewModel distributionListViewModel)
             {
@@ -224,7 +222,7 @@ public partial class App : Application
             }
 
             // Fade out splash
-            await splash.FadeOutAndCloseAsync();
+            await splash.CloseAsync();
 
             // Show main window only if not starting minimized
             if (!startMinimized)
