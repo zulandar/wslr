@@ -417,6 +417,12 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
                 distribution.DiskUsageGb = disk.HasValue ? Math.Round(disk.Value, 2) : null;
             }
         }
+
+        // Recalculate total disk usage from per-distribution values so they match
+        var totalDisk = Distributions
+            .Where(d => d.DiskUsageGb.HasValue)
+            .Sum(d => d.DiskUsageGb!.Value);
+        TotalDiskUsage = Math.Round(totalDisk, 1);
     }
 
     /// <summary>
