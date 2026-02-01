@@ -50,4 +50,13 @@ public interface IDialogService
     /// <param name="title">The dialog title.</param>
     /// <returns>The selected folder path, or null if cancelled.</returns>
     Task<string?> ShowFolderBrowserDialogAsync(string title);
+
+    /// <summary>
+    /// Shows a selection dialog allowing the user to choose from a list of options.
+    /// </summary>
+    /// <param name="title">The dialog title.</param>
+    /// <param name="message">The dialog message.</param>
+    /// <param name="options">The list of options to choose from.</param>
+    /// <returns>The index of the selected option, or -1 if cancelled.</returns>
+    Task<int> ShowSelectionDialogAsync(string title, string message, IReadOnlyList<string> options);
 }

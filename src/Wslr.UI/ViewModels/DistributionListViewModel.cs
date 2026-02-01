@@ -22,6 +22,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     private readonly INavigationService _navigationService;
     private readonly IConfigurationTemplateService _templateService;
     private readonly IWslDistroConfigService _distroConfigService;
+    private readonly IScriptTemplateService _scriptTemplateService;
+    private readonly IScriptExecutionService _scriptExecutionService;
     private readonly ILogger<DistributionListViewModel> _logger;
     private readonly SynchronizationContext? _synchronizationContext;
     private readonly HashSet<string> _pinnedNames = new(StringComparer.OrdinalIgnoreCase);
@@ -88,6 +90,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     /// <param name="navigationService">The navigation service.</param>
     /// <param name="templateService">The configuration template service.</param>
     /// <param name="distroConfigService">The distribution config service.</param>
+    /// <param name="scriptTemplateService">The script template service.</param>
+    /// <param name="scriptExecutionService">The script execution service.</param>
     /// <param name="logger">The logger.</param>
     public DistributionListViewModel(
         IWslService wslService,
@@ -99,6 +103,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         INavigationService navigationService,
         IConfigurationTemplateService templateService,
         IWslDistroConfigService distroConfigService,
+        IScriptTemplateService scriptTemplateService,
+        IScriptExecutionService scriptExecutionService,
         ILogger<DistributionListViewModel> logger)
     {
         _wslService = wslService ?? throw new ArgumentNullException(nameof(wslService));
@@ -110,6 +116,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _templateService = templateService ?? throw new ArgumentNullException(nameof(templateService));
         _distroConfigService = distroConfigService ?? throw new ArgumentNullException(nameof(distroConfigService));
+        _scriptTemplateService = scriptTemplateService ?? throw new ArgumentNullException(nameof(scriptTemplateService));
+        _scriptExecutionService = scriptExecutionService ?? throw new ArgumentNullException(nameof(scriptExecutionService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         // Capture the UI thread's synchronization context for thread marshaling
@@ -716,6 +724,9 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
                 await ExportDistributionConfigAsync(name, filePath, cancellationToken);
             }
 
+            // Offer to bundle a setup script
+            await OfferSetupScriptExportAsync(name, filePath, cancellationToken);
+
             await _dialogService.ShowInfoAsync("Export Complete", $"Distribution exported to:\n{filePath}");
         }
         catch (Exception ex)
@@ -832,7 +843,19 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             await _monitorService.RefreshAsync(cancellationToken);
             _logger.LogInformation("Distribution imported: {Name}", suggestedName);
 
-            // Offer to apply a template to the newly imported distribution
+            // Check for sidecar setup script file
+            var sidecarScriptPath = System.IO.Path.ChangeExtension(tarPath, ".setup.sh");
+            if (System.IO.File.Exists(sidecarScriptPath))
+            {
+                await OfferSidecarScriptExecutionAsync(suggestedName, sidecarScriptPath, cancellationToken);
+            }
+            else
+            {
+                // Offer to run a setup script from templates
+                await OfferSetupScriptApplicationAsync(suggestedName, cancellationToken);
+            }
+
+            // Offer to apply a configuration template to the newly imported distribution
             await OfferTemplateApplicationAsync(suggestedName, cancellationToken);
 
             await _dialogService.ShowInfoAsync("Import Complete", $"Distribution '{suggestedName}' imported successfully.");
@@ -912,6 +935,194 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         {
             _logger.LogWarning(ex, "Error offering template application for {Distro}", distributionName);
             // Don't fail the import just because template application failed
+        }
+    }
+
+    /// <summary>
+    /// Offers to export a setup script alongside the tar file.
+    /// </summary>
+    private async Task OfferSetupScriptExportAsync(string distributionName, string tarFilePath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var templates = await _scriptTemplateService.GetAllTemplatesAsync(cancellationToken);
+            if (templates.Count == 0)
+            {
+                return;
+            }
+
+            var exportScript = await _dialogService.ShowConfirmationAsync(
+                "Bundle Setup Script",
+                "Would you like to bundle a setup script with this export?\n\n" +
+                "This creates a .setup.sh sidecar file that can be automatically detected and run when importing.");
+
+            if (!exportScript)
+            {
+                return;
+            }
+
+            // Show selection dialog
+            var options = templates.Select(t => $"{t.Name} ({t.Category ?? "User Scripts"})").ToList();
+            var selectedIndex = await _dialogService.ShowSelectionDialogAsync(
+                "Select Setup Script",
+                "Choose a script template to bundle with the export:",
+                options);
+
+            if (selectedIndex < 0 || selectedIndex >= templates.Count)
+            {
+                return;
+            }
+
+            var selectedTemplate = templates[selectedIndex];
+            var scriptPath = System.IO.Path.ChangeExtension(tarFilePath, ".setup.sh");
+
+            await System.IO.File.WriteAllTextAsync(scriptPath, selectedTemplate.ScriptContent, cancellationToken);
+
+            _logger.LogInformation("Exported setup script '{Script}' to {Path}", selectedTemplate.Name, scriptPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to export setup script for {Distro}", distributionName);
+            // Don't fail the main export
+        }
+    }
+
+    /// <summary>
+    /// Offers to run a sidecar setup script that was found alongside the tar file.
+    /// </summary>
+    private async Task OfferSidecarScriptExecutionAsync(string distributionName, string scriptPath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var scriptContent = await System.IO.File.ReadAllTextAsync(scriptPath, cancellationToken);
+            var scriptName = System.IO.Path.GetFileName(scriptPath);
+
+            // Show first few lines of the script for preview
+            var previewLines = scriptContent.Split('\n').Take(10);
+            var preview = string.Join("\n", previewLines);
+            if (scriptContent.Split('\n').Length > 10)
+            {
+                preview += "\n...";
+            }
+
+            var runScript = await _dialogService.ShowConfirmationAsync(
+                "Setup Script Found",
+                $"A setup script was found alongside the import:\n\n" +
+                $"File: {scriptName}\n\n" +
+                $"Preview:\n{preview}\n\n" +
+                "Would you like to run this setup script now?");
+
+            if (!runScript)
+            {
+                return;
+            }
+
+            // Execute the script using the navigation service to show progress dialog
+            var result = await ExecuteSetupScriptWithDialogAsync(distributionName, scriptContent, scriptName);
+
+            if (result?.IsSuccess == true)
+            {
+                await _dialogService.ShowInfoAsync("Script Complete", $"Setup script completed successfully in {result.Duration.TotalSeconds:F1}s");
+            }
+            else if (result != null && !result.WasCancelled)
+            {
+                await _dialogService.ShowErrorAsync("Script Failed", $"Setup script failed with exit code {result.ExitCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to run sidecar script for {Distro}", distributionName);
+            // Don't fail the import
+        }
+    }
+
+    /// <summary>
+    /// Offers to run a setup script from templates after import.
+    /// </summary>
+    private async Task OfferSetupScriptApplicationAsync(string distributionName, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var templates = await _scriptTemplateService.GetAllTemplatesAsync(cancellationToken);
+            if (templates.Count == 0)
+            {
+                return;
+            }
+
+            var runScript = await _dialogService.ShowConfirmationAsync(
+                "Run Setup Script",
+                $"Would you like to run a setup script on '{distributionName}'?\n\n" +
+                "Setup scripts can install packages, configure the system, create users, and more.");
+
+            if (!runScript)
+            {
+                return;
+            }
+
+            // Show selection dialog
+            var options = templates.Select(t => $"{t.Name} - {t.Description ?? t.Category ?? "User script"}").ToList();
+            var selectedIndex = await _dialogService.ShowSelectionDialogAsync(
+                "Select Setup Script",
+                $"Choose a script template to run on '{distributionName}':",
+                options);
+
+            if (selectedIndex < 0 || selectedIndex >= templates.Count)
+            {
+                return;
+            }
+
+            var selectedTemplate = templates[selectedIndex];
+
+            // Execute the script
+            var result = await ExecuteSetupScriptWithDialogAsync(distributionName, selectedTemplate.ScriptContent, selectedTemplate.Name);
+
+            if (result?.IsSuccess == true)
+            {
+                await _dialogService.ShowInfoAsync("Script Complete", $"'{selectedTemplate.Name}' completed successfully in {result.Duration.TotalSeconds:F1}s");
+            }
+            else if (result != null && !result.WasCancelled)
+            {
+                await _dialogService.ShowErrorAsync("Script Failed", $"'{selectedTemplate.Name}' failed with exit code {result.ExitCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to run setup script for {Distro}", distributionName);
+            // Don't fail the import
+        }
+    }
+
+    /// <summary>
+    /// Executes a setup script with a progress dialog.
+    /// </summary>
+    private async Task<ScriptExecutionResult?> ExecuteSetupScriptWithDialogAsync(string distributionName, string scriptContent, string scriptName)
+    {
+        // For now, execute directly with progress reporting to the log
+        // A future enhancement could show a real-time dialog
+        _logger.LogInformation("Executing setup script '{Script}' on {Distro}", scriptName, distributionName);
+
+        try
+        {
+            var result = await _scriptExecutionService.ExecuteScriptAsync(
+                distributionName,
+                scriptContent,
+                progress: new Progress<string>(line => _logger.LogDebug("[{Distro}] {Output}", distributionName, line)));
+
+            if (result.IsSuccess)
+            {
+                _logger.LogInformation("Setup script '{Script}' completed successfully on {Distro}", scriptName, distributionName);
+            }
+            else
+            {
+                _logger.LogWarning("Setup script '{Script}' failed on {Distro} with exit code {ExitCode}", scriptName, distributionName, result.ExitCode);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to execute setup script '{Script}' on {Distro}", scriptName, distributionName);
+            return null;
         }
     }
 

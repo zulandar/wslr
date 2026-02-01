@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Windows;
 using Microsoft.Win32;
+using Wslr.App.Dialogs;
 using Wslr.UI.Services;
 
 namespace Wslr.App.Services;
@@ -85,5 +87,13 @@ public class DialogService : IDialogService
         var result = dialog.ShowDialog();
 
         return Task.FromResult(result == true ? dialog.FolderName : null);
+    }
+
+    /// <inheritdoc />
+    public Task<int> ShowSelectionDialogAsync(string title, string message, IReadOnlyList<string> options)
+    {
+        var owner = Application.Current.MainWindow;
+        var result = SelectionDialog.Show(owner, title, message, options);
+        return Task.FromResult(result);
     }
 }
