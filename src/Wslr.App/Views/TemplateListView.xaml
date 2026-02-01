@@ -1,0 +1,365 @@
+<UserControl x:Class="Wslr.App.Views.TemplateListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="800"
+             Loaded="OnLoaded">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Panel: Template List -->
+        <Border Grid.Column="0"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,1,0"
+                Background="{StaticResource SurfaceBrush}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <StackPanel Grid.Row="0" Margin="16,16,16,8">
+                    <TextBlock Text="Configuration Templates"
+                               Style="{StaticResource SubtitleTextStyle}" />
+                    <TextBlock Text="Reusable WSL configuration presets"
+                               Style="{StaticResource CaptionTextStyle}"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+
+                <!-- Toolbar -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="16,8,16,8">
+                    <Button Content="New"
+                            Command="{Binding NewTemplateCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="12,6"
+                            Margin="0,0,8,0" />
+                    <Button Content="Import"
+                            Command="{Binding ImportTemplateCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="12,6" />
+                </StackPanel>
+
+                <!-- Template List -->
+                <ListBox Grid.Row="2"
+                         ItemsSource="{Binding Templates}"
+                         SelectedItem="{Binding SelectedTemplate}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Margin="8,0,8,8">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="12,10" />
+                            <Setter Property="Margin" Value="0,2" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bd"
+                                                Background="{TemplateBinding Background}"
+                                                CornerRadius="4"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PrimaryBrush}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding Name}"
+                                               Style="{StaticResource BodyTextStyle}"
+                                               FontWeight="Medium" />
+                                    <TextBlock Text="{Binding Description}"
+                                               Style="{StaticResource CaptionTextStyle}"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,2,0,0" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <Border Background="{StaticResource PrimaryBrush}"
+                                                CornerRadius="2"
+                                                Padding="6,2"
+                                                Margin="0,0,4,0"
+                                                Visibility="{Binding IsBuiltIn, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock Text="Built-in"
+                                                       FontSize="10"
+                                                       Foreground="White" />
+                                        </Border>
+                                        <Border Background="#2563EB"
+                                                CornerRadius="2"
+                                                Padding="6,2"
+                                                Margin="0,0,4,0"
+                                                Visibility="{Binding HasGlobalSettings, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock Text="Global"
+                                                       FontSize="10"
+                                                       Foreground="White" />
+                                        </Border>
+                                        <Border Background="#059669"
+                                                CornerRadius="2"
+                                                Padding="6,2"
+                                                Visibility="{Binding HasDistroSettings, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock Text="Distro"
+                                                       FontSize="10"
+                                                       Foreground="White" />
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- Right Panel: Details and Actions -->
+        <ScrollViewer Grid.Column="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="0,0,8,0">
+            <StackPanel Margin="24,16,16,16" MaxWidth="500" HorizontalAlignment="Left">
+
+                <!-- Success/Error Messages -->
+                <Border Background="#1A4ADE80"
+                        BorderBrush="#4ADE80"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12,8"
+                        Margin="0,0,0,16"
+                        Visibility="{Binding SuccessMessage, Converter={StaticResource NullToVisibilityConverter}}">
+                    <TextBlock Text="{Binding SuccessMessage}"
+                               Foreground="#4ADE80"
+                               TextWrapping="Wrap" />
+                </Border>
+
+                <Border Background="#1AF87171"
+                        BorderBrush="#F87171"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12,8"
+                        Margin="0,0,0,16"
+                        Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}">
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="#F87171"
+                               TextWrapping="Wrap" />
+                </Border>
+
+                <!-- No Selection Message -->
+                <TextBlock Text="Select a template to view details and apply it to a distribution."
+                           Style="{StaticResource BodyTextStyle}"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding SelectedTemplate, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Invert}" />
+
+                <!-- Template Details (when selected and not editing) -->
+                <StackPanel Visibility="{Binding SelectedTemplate, Converter={StaticResource NullToVisibilityConverter}}">
+                    <StackPanel Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+
+                        <!-- Template Header -->
+                        <TextBlock Text="{Binding SelectedTemplate.Name}"
+                                   Style="{StaticResource SubtitleTextStyle}"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="{Binding SelectedTemplate.Description}"
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,16" />
+
+                        <!-- Template Actions -->
+                        <TextBlock Text="ACTIONS"
+                                   Style="{StaticResource SettingsSectionHeaderStyle}" />
+
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Content="Edit"
+                                    Command="{Binding EditTemplateCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Padding="12,6"
+                                    Margin="0,0,8,0" />
+                            <Button Content="Duplicate"
+                                    Command="{Binding DuplicateTemplateCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Padding="12,6"
+                                    Margin="0,0,8,0" />
+                            <Button Content="Export"
+                                    Command="{Binding ExportTemplateCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Padding="12,6"
+                                    Margin="0,0,8,0" />
+                            <Button Content="Delete"
+                                    Command="{Binding DeleteTemplateCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Padding="12,6" />
+                        </StackPanel>
+
+                        <!-- Apply Section -->
+                        <TextBlock Text="APPLY TO DISTRIBUTION"
+                                   Style="{StaticResource SettingsSectionHeaderStyle}"
+                                   Margin="0,24,0,12" />
+
+                        <Border Style="{StaticResource SettingsRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Target distribution" Style="{StaticResource BodyTextStyle}" />
+                                    <TextBlock Text="Select which distribution to apply the template to"
+                                               Style="{StaticResource CaptionTextStyle}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1"
+                                          ItemsSource="{Binding Distributions}"
+                                          SelectedItem="{Binding SelectedDistribution}"
+                                          Width="180"
+                                          Style="{StaticResource SettingsComboBoxStyle}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Apply global settings" Style="{StaticResource BodyTextStyle}" />
+                                    <TextBlock Text="Apply .wslconfig settings (affects all distributions)"
+                                               Style="{StaticResource CaptionTextStyle}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1"
+                                          IsChecked="{Binding ApplyGlobalSettings}"
+                                          Style="{StaticResource ToggleSwitchStyle}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Apply distribution settings" Style="{StaticResource BodyTextStyle}" />
+                                    <TextBlock Text="Apply wsl.conf settings to the selected distribution"
+                                               Style="{StaticResource CaptionTextStyle}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1"
+                                          IsChecked="{Binding ApplyDistroSettings}"
+                                          Style="{StaticResource ToggleSwitchStyle}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsRowStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Merge mode" Style="{StaticResource BodyTextStyle}" />
+                                    <TextBlock Text="Merge with existing settings (vs. overwrite all)"
+                                               Style="{StaticResource CaptionTextStyle}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <CheckBox Grid.Column="1"
+                                          IsChecked="{Binding UseMergeMode}"
+                                          Style="{StaticResource ToggleSwitchStyle}" />
+                            </Grid>
+                        </Border>
+
+                        <Button Content="Apply Template"
+                                Command="{Binding ApplyTemplateCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Padding="16,8"
+                                Margin="0,16,0,0"
+                                HorizontalAlignment="Left" />
+
+                        <!-- Create from Distribution -->
+                        <TextBlock Text="CREATE FROM DISTRIBUTION"
+                                   Style="{StaticResource SettingsSectionHeaderStyle}"
+                                   Margin="0,32,0,12" />
+
+                        <TextBlock Text="Create a new template by capturing the current configuration from a distribution."
+                                   Style="{StaticResource BodyTextStyle}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12" />
+
+                        <Button Content="Create Template from Selected Distribution"
+                                Command="{Binding CreateFromDistributionCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Padding="12,6"
+                                HorizontalAlignment="Left" />
+                    </StackPanel>
+
+                    <!-- Edit Form -->
+                    <StackPanel Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="Edit Template"
+                                   Style="{StaticResource SubtitleTextStyle}"
+                                   Margin="0,0,0,16" />
+
+                        <TextBlock Text="Name" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,4" />
+                        <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource SettingsTextBoxStyle}"
+                                 Margin="0,0,0,16" />
+
+                        <TextBlock Text="Description" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,4" />
+                        <TextBox Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource SettingsTextBoxStyle}"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 MinHeight="80"
+                                 Margin="0,0,0,16" />
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Save"
+                                    Command="{Binding SaveTemplateCommand}"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Padding="16,6"
+                                    Margin="0,0,8,0" />
+                            <Button Content="Cancel"
+                                    Command="{Binding CancelEditCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Padding="12,6" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Loading overlay -->
+        <Border Grid.ColumnSpan="2"
+                Background="{StaticResource BackgroundBrush}"
+                Opacity="0.9"
+                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                Panel.ZIndex="100">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="Loading..."
+                           Style="{StaticResource BodyTextStyle}"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -16,6 +16,7 @@ public partial class TrayIconViewModel : ObservableObject, IDisposable
     private readonly INavigationService _navigationService;
     private readonly INotificationService _notificationService;
     private readonly IDistributionMonitorService _monitorService;
+    private readonly IConfigurationProfileService _profileService;
 
     // Track actions initiated by this app to avoid duplicate notifications
     private readonly HashSet<string> _pendingActions = [];
@@ -25,7 +26,13 @@ public partial class TrayIconViewModel : ObservableObject, IDisposable
     private ObservableCollection<DistributionItemViewModel> _distributions = [];
 
     [ObservableProperty]
+    private ObservableCollection<ProfileMenuItemViewModel> _profiles = [];
+
+    [ObservableProperty]
     private bool _isStateChangeNotificationsEnabled = true;
+
+    [ObservableProperty]
+    private string? _activeProfileName;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TrayIconViewModel"/> class.
@@ -34,21 +41,70 @@ public partial class TrayIconViewModel : ObservableObject, IDisposable
     /// <param name="navigationService">The navigation service.</param>
     /// <param name="notificationService">The notification service.</param>
     /// <param name="monitorService">The distribution monitor service.</param>
+    /// <param name="profileService">The configuration profile service.</param>
     public TrayIconViewModel(
         IWslService wslService,
         INavigationService navigationService,
         INotificationService notificationService,
-        IDistributionMonitorService monitorService)
+        IDistributionMonitorService monitorService,
+        IConfigurationProfileService profileService)
     {
         _wslService = wslService ?? throw new ArgumentNullException(nameof(wslService));
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
         _monitorService = monitorService ?? throw new ArgumentNullException(nameof(monitorService));
+        _profileService = profileService ?? throw new ArgumentNullException(nameof(profileService));
 
         // Subscribe to monitor service events
         _monitorService.DistributionsRefreshed += OnDistributionsRefreshed;
         _monitorService.DistributionStateChanged += OnDistributionStateChanged;
         _monitorService.RefreshError += OnRefreshError;
+
+        // Subscribe to profile change events
+        _profileService.ActiveProfileChanged += OnActiveProfileChanged;
+
+        // Initial profile load
+        _ = LoadProfilesAsync();
+    }
+
+    private void OnActiveProfileChanged(object? sender, string? profileId)
+    {
+        _ = LoadProfilesAsync();
+    }
+
+    private async Task LoadProfilesAsync()
+    {
+        try
+        {
+            var profiles = await _profileService.GetAllProfilesAsync();
+            var activeId = _profileService.GetActiveProfileId();
+
+            Profiles.Clear();
+            foreach (var profile in profiles)
+            {
+                var isActive = profile.Id == activeId;
+                Profiles.Add(new ProfileMenuItemViewModel
+                {
+                    Id = profile.Id,
+                    Name = profile.Name,
+                    IsActive = isActive
+                });
+
+                if (isActive)
+                {
+                    ActiveProfileName = profile.Name;
+                }
+            }
+
+            if (activeId is null)
+            {
+                ActiveProfileName = null;
+            }
+        }
+        catch
+        {
+            // Ignore errors loading profiles for tray
+        }
     }
 
     private void OnDistributionsRefreshed(object? sender, EventArgs e)
@@ -213,6 +269,40 @@ public partial class TrayIconViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
+    /// Switches to a configuration profile.
+    /// </summary>
+    [RelayCommand]
+    private async Task SwitchProfileAsync(string profileId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var profile = await _profileService.GetProfileAsync(profileId, cancellationToken);
+            if (profile is null)
+            {
+                _notificationService.ShowError("Error", "Profile not found.");
+                return;
+            }
+
+            var result = await _profileService.SwitchToProfileAsync(profileId, cancellationToken);
+
+            if (result.Success)
+            {
+                _notificationService.ShowSuccess("Profile Switched",
+                    $"Switched to '{profile.Name}'. Restart WSL for changes to take effect.");
+                await LoadProfilesAsync();
+            }
+            else
+            {
+                _notificationService.ShowError("Error", $"Failed to switch profile: {result.ErrorMessage}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _notificationService.ShowError("Error", $"Failed to switch profile: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Cleans up resources.
     /// </summary>
     public void Dispose()
@@ -220,5 +310,21 @@ public partial class TrayIconViewModel : ObservableObject, IDisposable
         _monitorService.DistributionsRefreshed -= OnDistributionsRefreshed;
         _monitorService.DistributionStateChanged -= OnDistributionStateChanged;
         _monitorService.RefreshError -= OnRefreshError;
+        _profileService.ActiveProfileChanged -= OnActiveProfileChanged;
     }
+}
+
+/// <summary>
+/// ViewModel for a profile menu item in the tray.
+/// </summary>
+public partial class ProfileMenuItemViewModel : ObservableObject
+{
+    [ObservableProperty]
+    private string _id = string.Empty;
+
+    [ObservableProperty]
+    private string _name = string.Empty;
+
+    [ObservableProperty]
+    private bool _isActive;
 }

@@ -166,6 +166,7 @@
     <converters:IndexToBoolConverter x:Key="IndexToBoolConverter" />
     <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
     <converters:AllFalseConverter x:Key="AllFalseConverter" />
+    <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
 
     <!-- ==================== -->
     <!-- BUTTON STYLES        -->

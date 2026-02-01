@@ -21,6 +21,8 @@ public static class DependencyInjection
         services.AddSingleton<IWslConfigService, WslConfigService>();
         services.AddSingleton<IWslDistroConfigService, WslDistroConfigService>();
         services.AddSingleton<ITerminalSessionService, TerminalSessionService>();
+        services.AddSingleton<IConfigurationTemplateService, ConfigurationTemplateService>();
+        services.AddSingleton<IConfigurationProfileService, ConfigurationProfileService>();
 
         return services;
     }

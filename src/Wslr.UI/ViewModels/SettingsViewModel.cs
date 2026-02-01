@@ -45,6 +45,16 @@ public partial class SettingsViewModel : ObservableObject
     public DistroSettingsViewModel DistroSettingsViewModel { get; }
 
     /// <summary>
+    /// Gets the template list ViewModel.
+    /// </summary>
+    public TemplateListViewModel TemplateListViewModel { get; }
+
+    /// <summary>
+    /// Gets the profile list ViewModel.
+    /// </summary>
+    public ProfileListViewModel ProfileListViewModel { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SettingsViewModel"/> class.
     /// </summary>
     /// <param name="settingsService">The settings service.</param>
@@ -52,18 +62,24 @@ public partial class SettingsViewModel : ObservableObject
     /// <param name="loggingService">The logging service.</param>
     /// <param name="globalWslSettingsViewModel">The global WSL settings ViewModel.</param>
     /// <param name="distroSettingsViewModel">The distribution settings ViewModel.</param>
+    /// <param name="templateListViewModel">The template list ViewModel.</param>
+    /// <param name="profileListViewModel">The profile list ViewModel.</param>
     public SettingsViewModel(
         ISettingsService settingsService,
         IStartupService startupService,
         ILoggingService loggingService,
         GlobalWslSettingsViewModel globalWslSettingsViewModel,
-        DistroSettingsViewModel distroSettingsViewModel)
+        DistroSettingsViewModel distroSettingsViewModel,
+        TemplateListViewModel templateListViewModel,
+        ProfileListViewModel profileListViewModel)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _startupService = startupService ?? throw new ArgumentNullException(nameof(startupService));
         _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
         GlobalWslSettingsViewModel = globalWslSettingsViewModel ?? throw new ArgumentNullException(nameof(globalWslSettingsViewModel));
         DistroSettingsViewModel = distroSettingsViewModel ?? throw new ArgumentNullException(nameof(distroSettingsViewModel));
+        TemplateListViewModel = templateListViewModel ?? throw new ArgumentNullException(nameof(templateListViewModel));
+        ProfileListViewModel = profileListViewModel ?? throw new ArgumentNullException(nameof(profileListViewModel));
 
         LoadSettings();
     }

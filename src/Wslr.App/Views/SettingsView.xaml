@@ -303,5 +303,15 @@
         <TabItem Header="Distribution" Style="{StaticResource SettingsTabItemStyle}">
             <views:DistroSettingsView DataContext="{Binding DistroSettingsViewModel}" />
         </TabItem>
+
+        <!-- Templates Tab -->
+        <TabItem Header="Templates" Style="{StaticResource SettingsTabItemStyle}">
+            <views:TemplateListView DataContext="{Binding TemplateListViewModel}" />
+        </TabItem>
+
+        <!-- Profiles Tab -->
+        <TabItem Header="Profiles" Style="{StaticResource SettingsTabItemStyle}">
+            <views:ProfileListView DataContext="{Binding ProfileListViewModel}" />
+        </TabItem>
     </TabControl>
 </UserControl>

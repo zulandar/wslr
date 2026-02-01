@@ -29,6 +29,8 @@ public static class DependencyInjection
         services.AddTransient<GlobalWslSettingsViewModel>();
         services.AddTransient<DistroSettingsViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<TemplateListViewModel>();
+        services.AddTransient<ProfileListViewModel>();
 
         return services;
     }

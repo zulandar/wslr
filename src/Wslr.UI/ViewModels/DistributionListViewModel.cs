@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Wslr.Core.Interfaces;
+using Wslr.Core.Models;
 using Wslr.UI.Services;
 
 namespace Wslr.UI.ViewModels;
@@ -19,6 +20,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     private readonly IDistributionResourceService _distributionResourceService;
     private readonly ISettingsService _settingsService;
     private readonly INavigationService _navigationService;
+    private readonly IConfigurationTemplateService _templateService;
+    private readonly IWslDistroConfigService _distroConfigService;
     private readonly ILogger<DistributionListViewModel> _logger;
     private readonly SynchronizationContext? _synchronizationContext;
     private readonly HashSet<string> _pinnedNames = new(StringComparer.OrdinalIgnoreCase);
@@ -83,6 +86,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     /// <param name="distributionResourceService">The distribution resource service.</param>
     /// <param name="settingsService">The settings service.</param>
     /// <param name="navigationService">The navigation service.</param>
+    /// <param name="templateService">The configuration template service.</param>
+    /// <param name="distroConfigService">The distribution config service.</param>
     /// <param name="logger">The logger.</param>
     public DistributionListViewModel(
         IWslService wslService,
@@ -92,6 +97,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         IDistributionResourceService distributionResourceService,
         ISettingsService settingsService,
         INavigationService navigationService,
+        IConfigurationTemplateService templateService,
+        IWslDistroConfigService distroConfigService,
         ILogger<DistributionListViewModel> logger)
     {
         _wslService = wslService ?? throw new ArgumentNullException(nameof(wslService));
@@ -101,6 +108,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         _distributionResourceService = distributionResourceService ?? throw new ArgumentNullException(nameof(distributionResourceService));
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _templateService = templateService ?? throw new ArgumentNullException(nameof(templateService));
+        _distroConfigService = distroConfigService ?? throw new ArgumentNullException(nameof(distroConfigService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         // Capture the UI thread's synchronization context for thread marshaling
@@ -695,6 +704,18 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
 
             await _wslService.ExportDistributionAsync(name, filePath, null, cancellationToken);
             _logger.LogInformation("Distribution exported: {Name} to {Path}", name, filePath);
+
+            // Offer to export the configuration as a sidecar template file
+            var exportConfig = await _dialogService.ShowConfirmationAsync(
+                "Export Configuration",
+                "Would you like to also export the distribution's configuration as a template?\n\n" +
+                "This creates a .wslr-template.json file that can be applied when importing.");
+
+            if (exportConfig)
+            {
+                await ExportDistributionConfigAsync(name, filePath, cancellationToken);
+            }
+
             await _dialogService.ShowInfoAsync("Export Complete", $"Distribution exported to:\n{filePath}");
         }
         catch (Exception ex)
@@ -705,6 +726,36 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Exports the distribution's configuration as a sidecar template file.
+    /// </summary>
+    private async Task ExportDistributionConfigAsync(string distributionName, string tarFilePath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var template = await _templateService.CreateTemplateFromDistributionAsync(
+                $"Export from {distributionName}",
+                $"Configuration exported with {distributionName} on {DateTime.Now:yyyy-MM-dd}",
+                distributionName,
+                includeGlobalSettings: false,
+                cancellationToken);
+
+            // Export to sidecar file
+            var templatePath = System.IO.Path.ChangeExtension(tarFilePath, ".wslr-template.json");
+            await _templateService.ExportTemplateAsync(template.Id, templatePath, cancellationToken);
+
+            // Clean up the temporary template we created
+            await _templateService.DeleteTemplateAsync(template.Id, cancellationToken);
+
+            _logger.LogInformation("Exported configuration template to {Path}", templatePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to export configuration for {Distro}", distributionName);
+            // Don't fail the main export
         }
     }
 
@@ -780,6 +831,10 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             await _wslService.ImportDistributionAsync(suggestedName, installLocation, tarPath, 2, null, cancellationToken);
             await _monitorService.RefreshAsync(cancellationToken);
             _logger.LogInformation("Distribution imported: {Name}", suggestedName);
+
+            // Offer to apply a template to the newly imported distribution
+            await OfferTemplateApplicationAsync(suggestedName, cancellationToken);
+
             await _dialogService.ShowInfoAsync("Import Complete", $"Distribution '{suggestedName}' imported successfully.");
         }
         catch (Exception ex)
@@ -790,6 +845,73 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Offers to apply a template to a newly created distribution.
+    /// </summary>
+    private async Task OfferTemplateApplicationAsync(string distributionName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var templates = await _templateService.GetAllTemplatesAsync(cancellationToken);
+            if (templates.Count == 0)
+            {
+                return;
+            }
+
+            // Ask if user wants to apply a template
+            var applyTemplate = await _dialogService.ShowConfirmationAsync(
+                "Apply Configuration Template",
+                $"Would you like to apply a configuration template to '{distributionName}'?\n\n" +
+                "Templates can configure systemd, Windows interop, mount settings, and more.");
+
+            if (!applyTemplate)
+            {
+                return;
+            }
+
+            // For now, offer the Development template as default (most common use case)
+            var devTemplate = templates.FirstOrDefault(t => t.Id == "builtin-dev");
+            if (devTemplate is not null)
+            {
+                var useDevTemplate = await _dialogService.ShowConfirmationAsync(
+                    "Apply Development Template",
+                    "Apply the 'Development' template? This enables:\n\n" +
+                    "- Systemd\n" +
+                    "- Windows interop\n" +
+                    "- Windows PATH integration\n" +
+                    "- Metadata mount options\n\n" +
+                    "Click No to go to Settings > Templates to choose a different template.");
+
+                if (useDevTemplate)
+                {
+                    var result = await _templateService.ApplyTemplateAsync(
+                        devTemplate.Id,
+                        distributionName,
+                        new TemplateApplyOptions { ApplyDistroSettings = true, ApplyGlobalSettings = false },
+                        cancellationToken);
+
+                    if (result.Success)
+                    {
+                        _logger.LogInformation("Applied Development template to {Distro}", distributionName);
+                        await _dialogService.ShowInfoAsync(
+                            "Template Applied",
+                            $"Development template applied to {distributionName}.\n" +
+                            "Restart the distribution for changes to take effect.");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Failed to apply template to {Distro}: {Error}", distributionName, result.ErrorMessage);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error offering template application for {Distro}", distributionName);
+            // Don't fail the import just because template application failed
         }
     }
 
