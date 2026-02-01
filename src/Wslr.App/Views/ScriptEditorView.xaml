@@ -233,7 +233,7 @@
 
                         <TextBlock Text="Double-click to load a template"
                                    Style="{StaticResource CaptionTextStyle}"
-                                   Foreground="{StaticResource TertiaryTextBrush}"
+                                   Foreground="{StaticResource MutedTextBrush}"
                                    Margin="0,8,0,0" />
                     </StackPanel>
                 </ScrollViewer>
