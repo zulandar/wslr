@@ -1,5 +1,4 @@
 using System.IO;
-using System.Reflection;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -82,8 +81,8 @@ public partial class TerminalControl : UserControl
         coreWebView.Settings.IsZoomControlEnabled = false;
         coreWebView.Settings.AreDefaultContextMenusEnabled = false;
 
-        // Set up virtual host for local assets
-        var assetsPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "Assets", "Terminal");
+        // Set up virtual host for local assets (use AppContext.BaseDirectory for single-file compatibility)
+        var assetsPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Terminal");
         coreWebView.SetVirtualHostNameToFolderMapping("wslr.local", assetsPath, CoreWebView2HostResourceAccessKind.Allow);
 
         // Handle messages from JavaScript
