@@ -31,6 +31,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly INavigationService _navigationService;
     private readonly DistributionListViewModel _distributionListViewModel;
     private readonly TerminalViewModel _terminalViewModel;
+    private readonly SettingsViewModel _settingsViewModel;
 
     [ObservableProperty]
     private object? _currentViewModel;
@@ -66,14 +67,17 @@ public partial class MainWindowViewModel : ObservableObject
     /// <param name="navigationService">The navigation service.</param>
     /// <param name="distributionListViewModel">The distribution list ViewModel.</param>
     /// <param name="terminalViewModel">The terminal ViewModel.</param>
+    /// <param name="settingsViewModel">The settings ViewModel.</param>
     public MainWindowViewModel(
         INavigationService navigationService,
         DistributionListViewModel distributionListViewModel,
-        TerminalViewModel terminalViewModel)
+        TerminalViewModel terminalViewModel,
+        SettingsViewModel settingsViewModel)
     {
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _distributionListViewModel = distributionListViewModel ?? throw new ArgumentNullException(nameof(distributionListViewModel));
         _terminalViewModel = terminalViewModel ?? throw new ArgumentNullException(nameof(terminalViewModel));
+        _settingsViewModel = settingsViewModel ?? throw new ArgumentNullException(nameof(settingsViewModel));
         CurrentViewModel = _distributionListViewModel;
         _selectedNavigationIndex = (int)NavigationPage.Distributions;
     }
@@ -129,7 +133,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         SelectedNavigationIndex = (int)NavigationPage.Settings;
         CurrentPageTitle = "Settings";
-        CurrentViewModel = new PlaceholderViewModel("Settings", "Application settings and preferences.");
+        CurrentViewModel = _settingsViewModel;
     }
 
     /// <summary>

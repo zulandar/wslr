@@ -35,16 +35,35 @@ public partial class SettingsViewModel : ObservableObject
     private bool _debugLoggingEnabled;
 
     /// <summary>
+    /// Gets the global WSL settings ViewModel.
+    /// </summary>
+    public GlobalWslSettingsViewModel GlobalWslSettingsViewModel { get; }
+
+    /// <summary>
+    /// Gets the distribution settings ViewModel.
+    /// </summary>
+    public DistroSettingsViewModel DistroSettingsViewModel { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SettingsViewModel"/> class.
     /// </summary>
     /// <param name="settingsService">The settings service.</param>
     /// <param name="startupService">The startup service for Windows startup management.</param>
     /// <param name="loggingService">The logging service.</param>
-    public SettingsViewModel(ISettingsService settingsService, IStartupService startupService, ILoggingService loggingService)
+    /// <param name="globalWslSettingsViewModel">The global WSL settings ViewModel.</param>
+    /// <param name="distroSettingsViewModel">The distribution settings ViewModel.</param>
+    public SettingsViewModel(
+        ISettingsService settingsService,
+        IStartupService startupService,
+        ILoggingService loggingService,
+        GlobalWslSettingsViewModel globalWslSettingsViewModel,
+        DistroSettingsViewModel distroSettingsViewModel)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _startupService = startupService ?? throw new ArgumentNullException(nameof(startupService));
         _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
+        GlobalWslSettingsViewModel = globalWslSettingsViewModel ?? throw new ArgumentNullException(nameof(globalWslSettingsViewModel));
+        DistroSettingsViewModel = distroSettingsViewModel ?? throw new ArgumentNullException(nameof(distroSettingsViewModel));
 
         LoadSettings();
     }
