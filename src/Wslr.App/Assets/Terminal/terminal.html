@@ -52,10 +52,93 @@
         .xterm:not(.focus) .xterm-cursor {
             opacity: 0.5;
         }
+
+        /* Smooth scrolling */
+        .xterm-viewport {
+            scroll-behavior: smooth;
+        }
+
+        /* Selection styling */
+        .xterm-selection div {
+            background-color: rgba(96, 165, 250, 0.3) !important;
+        }
+
+        /* Context menu */
+        .context-menu {
+            position: fixed;
+            background: #2a2a2a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 4px 0;
+            min-width: 120px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu.visible {
+            display: block;
+        }
+
+        .context-menu-item {
+            padding: 8px 16px;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .context-menu-item.disabled {
+            color: #666;
+            cursor: default;
+        }
+
+        .context-menu-item.disabled:hover {
+            background: transparent;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 4px 0;
+        }
+
+        .context-menu-shortcut {
+            margin-left: auto;
+            color: #888;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
     <div id="terminal"></div>
+
+    <!-- Context menu -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" id="menuCopy">
+            <span>Copy</span>
+            <span class="context-menu-shortcut">Ctrl+Shift+C</span>
+        </div>
+        <div class="context-menu-item" id="menuPaste">
+            <span>Paste</span>
+            <span class="context-menu-shortcut">Ctrl+Shift+V</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="menuClear">
+            <span>Clear</span>
+        </div>
+        <div class="context-menu-item" id="menuSelectAll">
+            <span>Select All</span>
+            <span class="context-menu-shortcut">Ctrl+Shift+A</span>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
@@ -208,28 +291,123 @@
                 terminal.focus();
             });
 
-            // Handle paste via Ctrl+Shift+V (Ctrl+V is captured by terminal for SIGINT handling)
-            document.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.shiftKey && e.key === 'V') {
-                    e.preventDefault();
-                    navigator.clipboard.readText().then(text => {
-                        if (text) {
-                            terminal.paste(text);
-                        }
-                    }).catch(err => {
-                        console.error('Paste failed:', err);
+            // Clipboard functions
+            function copySelection() {
+                const selection = terminal.getSelection();
+                if (selection) {
+                    navigator.clipboard.writeText(selection).catch(err => {
+                        console.error('Copy failed:', err);
                     });
                 }
-                // Ctrl+Shift+C for copy
-                if (e.ctrlKey && e.shiftKey && e.key === 'C') {
-                    e.preventDefault();
-                    const selection = terminal.getSelection();
-                    if (selection) {
-                        navigator.clipboard.writeText(selection).catch(err => {
-                            console.error('Copy failed:', err);
-                        });
+            }
+
+            function pasteClipboard() {
+                navigator.clipboard.readText().then(text => {
+                    if (text) {
+                        terminal.paste(text);
+                    }
+                }).catch(err => {
+                    console.error('Paste failed:', err);
+                });
+            }
+
+            function selectAll() {
+                terminal.selectAll();
+            }
+
+            // Handle keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey) {
+                    switch (e.key.toUpperCase()) {
+                        case 'V':
+                            e.preventDefault();
+                            pasteClipboard();
+                            break;
+                        case 'C':
+                            e.preventDefault();
+                            copySelection();
+                            break;
+                        case 'A':
+                            e.preventDefault();
+                            selectAll();
+                            break;
                     }
                 }
+            });
+
+            // Context menu handling
+            const contextMenu = document.getElementById('contextMenu');
+            const menuCopy = document.getElementById('menuCopy');
+            const menuPaste = document.getElementById('menuPaste');
+            const menuClear = document.getElementById('menuClear');
+            const menuSelectAll = document.getElementById('menuSelectAll');
+
+            function showContextMenu(x, y) {
+                // Update copy item state based on selection
+                const hasSelection = terminal.getSelection().length > 0;
+                menuCopy.classList.toggle('disabled', !hasSelection);
+
+                // Position menu
+                contextMenu.style.left = x + 'px';
+                contextMenu.style.top = y + 'px';
+                contextMenu.classList.add('visible');
+
+                // Ensure menu stays within viewport
+                const rect = contextMenu.getBoundingClientRect();
+                if (rect.right > window.innerWidth) {
+                    contextMenu.style.left = (window.innerWidth - rect.width - 5) + 'px';
+                }
+                if (rect.bottom > window.innerHeight) {
+                    contextMenu.style.top = (window.innerHeight - rect.height - 5) + 'px';
+                }
+            }
+
+            function hideContextMenu() {
+                contextMenu.classList.remove('visible');
+            }
+
+            // Right-click to show context menu
+            container.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showContextMenu(e.clientX, e.clientY);
+            });
+
+            // Hide menu on click elsewhere
+            document.addEventListener('click', (e) => {
+                if (!contextMenu.contains(e.target)) {
+                    hideContextMenu();
+                }
+            });
+
+            // Hide menu on scroll or resize
+            document.addEventListener('scroll', hideContextMenu);
+            window.addEventListener('resize', hideContextMenu);
+
+            // Menu item handlers
+            menuCopy.addEventListener('click', () => {
+                if (!menuCopy.classList.contains('disabled')) {
+                    copySelection();
+                }
+                hideContextMenu();
+                terminal.focus();
+            });
+
+            menuPaste.addEventListener('click', () => {
+                pasteClipboard();
+                hideContextMenu();
+                terminal.focus();
+            });
+
+            menuClear.addEventListener('click', () => {
+                terminal.clear();
+                hideContextMenu();
+                terminal.focus();
+            });
+
+            menuSelectAll.addEventListener('click', () => {
+                selectAll();
+                hideContextMenu();
+                terminal.focus();
             });
 
             // Expose terminal API globally for debugging
