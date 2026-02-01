@@ -173,10 +173,11 @@ public sealed class WslService : IWslService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(distributionName);
 
-        // Starting a distribution by running a simple command
+        // Starting a distribution by running true (always returns 0)
+        // We use 'true' instead of 'exit' because exit can return non-zero during startup
         var result = await _processRunner.RunAsync(
             WslExecutable,
-            $"-d {distributionName} --exec exit",
+            $"-d {distributionName} -- true",
             cancellationToken);
 
         if (!result.IsSuccess)
