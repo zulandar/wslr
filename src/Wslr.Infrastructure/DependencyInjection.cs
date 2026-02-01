@@ -23,6 +23,8 @@ public static class DependencyInjection
         services.AddSingleton<ITerminalSessionService, TerminalSessionService>();
         services.AddSingleton<IConfigurationTemplateService, ConfigurationTemplateService>();
         services.AddSingleton<IConfigurationProfileService, ConfigurationProfileService>();
+        services.AddSingleton<IScriptExecutionService, ScriptExecutionService>();
+        services.AddSingleton<IScriptTemplateService, ScriptTemplateService>();
 
         return services;
     }
