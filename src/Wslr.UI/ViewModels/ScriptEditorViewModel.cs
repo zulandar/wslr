@@ -338,21 +338,14 @@ public partial class ScriptEditorViewModel : ObservableObject
     private bool CanSaveScript() => !IsSaving && !string.IsNullOrWhiteSpace(ScriptName);
 
     /// <summary>
-    /// Loads a template into the editor.
+    /// Loads a template into the editor (used by double-click).
+    /// Single-click selection also loads via OnCurrentTemplateChanged.
     /// </summary>
     [RelayCommand]
     public void LoadTemplate(ScriptTemplate? template)
     {
-        if (template == null) return;
-
+        // Setting CurrentTemplate triggers OnCurrentTemplateChanged which handles loading
         CurrentTemplate = template;
-        ScriptName = template.Name;
-        ScriptDescription = template.Description ?? string.Empty;
-        ScriptContent = template.ScriptContent;
-        IsModified = false;
-
-        SuccessMessage = $"Loaded template: {template.Name}";
-        ErrorMessage = null;
     }
 
     /// <summary>
@@ -415,6 +408,21 @@ public partial class ScriptEditorViewModel : ObservableObject
     partial void OnIsSavingChanged(bool value)
     {
         SaveScriptCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnCurrentTemplateChanged(ScriptTemplate? value)
+    {
+        if (value == null) return;
+
+        // Load the template content when selected
+        ScriptName = value.Name;
+        ScriptDescription = value.Description ?? string.Empty;
+        ScriptContent = value.ScriptContent;
+        IsModified = false;
+        ErrorMessage = null;
+        SuccessMessage = value.IsBuiltIn
+            ? $"Loaded built-in template: {value.Name} (save to create a copy)"
+            : $"Loaded template: {value.Name}";
     }
 
     partial void OnSelectedDistributionChanged(string? value)
