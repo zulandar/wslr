@@ -1,3 +1,4 @@
+using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Wslr.UI.Services;
@@ -41,6 +42,22 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private string _currentPageTitle = "Distributions";
+
+    /// <summary>
+    /// Gets the application version string.
+    /// </summary>
+    public string VersionString { get; } = GetVersionString();
+
+    private static string GetVersionString()
+    {
+        var version = Assembly.GetEntryAssembly()?.GetName().Version;
+        if (version is null)
+        {
+            return "v0.0.0";
+        }
+
+        return $"v{version.Major}.{version.Minor}.{version.Build}";
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.

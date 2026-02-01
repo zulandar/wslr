@@ -226,8 +226,14 @@
                         BorderBrush="{StaticResource BorderBrush}"
                         BorderThickness="0,1,0,0"
                         Padding="20,10">
-                    <TextBlock Text="Ready"
-                               Style="{StaticResource CaptionTextStyle}" />
+                    <Grid>
+                        <TextBlock Text="Ready"
+                                   HorizontalAlignment="Left"
+                                   Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock Text="{Binding VersionString}"
+                                   HorizontalAlignment="Right"
+                                   Style="{StaticResource CaptionTextStyle}" />
+                    </Grid>
                 </Border>
             </Grid>
         </Border>
