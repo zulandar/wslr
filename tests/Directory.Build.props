@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <!-- Coverage collection settings -->
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <CoverletOutput>$(MSBuildThisFileDirectory)coverage/</CoverletOutput>
+
+    <!-- Exclude test assemblies and generated code -->
+    <ExcludeByAttribute>Obsolete%2cGeneratedCodeAttribute%2cCompilerGeneratedAttribute%2cExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+    <ExcludeByFile>**/*.Designer.cs</ExcludeByFile>
+
+    <!-- Include only our source projects -->
+    <Include>[Wslr.Core]*%2c[Wslr.Infrastructure]*%2c[Wslr.UI]*%2c[Wslr.App]*</Include>
+  </PropertyGroup>
+</Project>

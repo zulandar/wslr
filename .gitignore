@@ -45,6 +45,7 @@ TestResult.xml
 coverage*.json
 coverage*.xml
 *.coverage
+tests/coverage/
 
 # Windows
 Thumbs.db
