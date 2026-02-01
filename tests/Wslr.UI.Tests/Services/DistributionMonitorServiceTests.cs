@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Wslr.Core.Interfaces;
 using Wslr.Core.Models;
 using Wslr.UI.Services;
@@ -7,12 +8,14 @@ namespace Wslr.UI.Tests.Services;
 public class DistributionMonitorServiceTests
 {
     private readonly Mock<IWslService> _wslServiceMock;
+    private readonly Mock<ILogger<DistributionMonitorService>> _loggerMock;
     private readonly DistributionMonitorService _sut;
 
     public DistributionMonitorServiceTests()
     {
         _wslServiceMock = new Mock<IWslService>();
-        _sut = new DistributionMonitorService(_wslServiceMock.Object);
+        _loggerMock = new Mock<ILogger<DistributionMonitorService>>();
+        _sut = new DistributionMonitorService(_wslServiceMock.Object, _loggerMock.Object);
     }
 
     #region Constructor Tests
@@ -20,10 +23,19 @@ public class DistributionMonitorServiceTests
     [Fact]
     public void Constructor_WithNullWslService_ThrowsArgumentNullException()
     {
-        var act = () => new DistributionMonitorService(null!);
+        var act = () => new DistributionMonitorService(null!, _loggerMock.Object);
 
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("wslService");
+    }
+
+    [Fact]
+    public void Constructor_WithNullLogger_ThrowsArgumentNullException()
+    {
+        var act = () => new DistributionMonitorService(_wslServiceMock.Object, null!);
+
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("logger");
     }
 
     [Fact]

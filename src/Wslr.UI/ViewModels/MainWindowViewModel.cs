@@ -30,6 +30,7 @@ public partial class MainWindowViewModel : ObservableObject
 {
     private readonly INavigationService _navigationService;
     private readonly DistributionListViewModel _distributionListViewModel;
+    private readonly TerminalViewModel _terminalViewModel;
 
     [ObservableProperty]
     private object? _currentViewModel;
@@ -64,12 +65,15 @@ public partial class MainWindowViewModel : ObservableObject
     /// </summary>
     /// <param name="navigationService">The navigation service.</param>
     /// <param name="distributionListViewModel">The distribution list ViewModel.</param>
+    /// <param name="terminalViewModel">The terminal ViewModel.</param>
     public MainWindowViewModel(
         INavigationService navigationService,
-        DistributionListViewModel distributionListViewModel)
+        DistributionListViewModel distributionListViewModel,
+        TerminalViewModel terminalViewModel)
     {
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _distributionListViewModel = distributionListViewModel ?? throw new ArgumentNullException(nameof(distributionListViewModel));
+        _terminalViewModel = terminalViewModel ?? throw new ArgumentNullException(nameof(terminalViewModel));
         CurrentViewModel = _distributionListViewModel;
         _selectedNavigationIndex = (int)NavigationPage.Distributions;
     }
@@ -93,7 +97,17 @@ public partial class MainWindowViewModel : ObservableObject
     {
         SelectedNavigationIndex = (int)NavigationPage.Terminal;
         CurrentPageTitle = "Terminal";
-        CurrentViewModel = new PlaceholderViewModel("Terminal", "Terminal functionality coming soon.");
+        CurrentViewModel = _terminalViewModel;
+    }
+
+    /// <summary>
+    /// Navigates to the terminal view and opens a new tab for the specified distribution.
+    /// </summary>
+    /// <param name="distributionName">The distribution to connect to.</param>
+    public void NavigateToTerminal(string distributionName)
+    {
+        NavigateToTerminal();
+        _ = _terminalViewModel.OpenTabAsync(distributionName);
     }
 
     /// <summary>

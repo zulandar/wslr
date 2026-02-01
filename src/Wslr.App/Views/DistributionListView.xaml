@@ -416,7 +416,9 @@
                                             Style="{StaticResource PrimaryButtonStyle}"
                                             Padding="8,4"
                                             FontSize="12"
-                                            Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibilityConverter}}"
+                                            Command="{Binding DataContext.OpenTerminalCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>

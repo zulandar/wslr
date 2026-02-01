@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddTransient<DistributionListViewModel>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<TrayIconViewModel>();
+        services.AddTransient<TerminalViewModel>();
 
         return services;
     }

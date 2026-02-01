@@ -42,4 +42,10 @@ public interface INavigationService
     /// Exits the application.
     /// </summary>
     void ExitApplication();
+
+    /// <summary>
+    /// Navigates to the terminal and connects to the specified distribution.
+    /// </summary>
+    /// <param name="distributionName">The name of the distribution to connect to.</param>
+    void NavigateToTerminal(string distributionName);
 }

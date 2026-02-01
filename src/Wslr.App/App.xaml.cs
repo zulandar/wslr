@@ -1,7 +1,12 @@
+using System.IO;
 using System.Net.Http;
+using System.Reflection;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using Wslr.App.Services;
 using Wslr.Core.Interfaces;
 using Wslr.Infrastructure;
@@ -20,6 +25,16 @@ public partial class App : Application
     private readonly IHost _host;
 
     /// <summary>
+    /// Gets or sets the logging level switch for dynamic log level changes.
+    /// </summary>
+    public static LoggingLevelSwitch LoggingLevelSwitch { get; } = new(LogEventLevel.Information);
+
+    /// <summary>
+    /// Gets the path to the logs directory.
+    /// </summary>
+    public static string LogsPath { get; } = GetLogsPath();
+
+    /// <summary>
     /// Gets the current application instance.
     /// </summary>
     public new static App Current => (App)Application.Current;
@@ -34,12 +49,52 @@ public partial class App : Application
     /// </summary>
     public App()
     {
+        ConfigureLogging();
+
         _host = Host.CreateDefaultBuilder()
+            .UseSerilog()
             .ConfigureServices((context, services) =>
             {
                 ConfigureServices(services);
             })
             .Build();
+    }
+
+    private static string GetLogsPath()
+    {
+        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return Path.Combine(appDataPath, "WSLR", "Logs");
+    }
+
+    private static void ConfigureLogging()
+    {
+        Directory.CreateDirectory(LogsPath);
+
+        var logFilePath = Path.Combine(LogsPath, "wslr-.log");
+
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.ControlledBy(LoggingLevelSwitch)
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Override("System", LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+            .WriteTo.File(
+                logFilePath,
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 7,
+                fileSizeLimitBytes: 10 * 1024 * 1024, // 10MB per file
+                rollOnFileSizeLimit: true,
+                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+            .CreateLogger();
+    }
+
+    /// <summary>
+    /// Sets the debug logging mode.
+    /// </summary>
+    /// <param name="enabled">Whether debug logging should be enabled.</param>
+    public static void SetDebugLogging(bool enabled)
+    {
+        LoggingLevelSwitch.MinimumLevel = enabled ? LogEventLevel.Debug : LogEventLevel.Information;
+        Log.Information("Debug logging {Status}", enabled ? "enabled" : "disabled");
     }
 
     private static void ConfigureServices(IServiceCollection services)
@@ -52,6 +107,7 @@ public partial class App : Application
 
         // App layer services
         services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<ILoggingService, LoggingService>();
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<ITrayIconService, TrayIconService>();
@@ -79,6 +135,11 @@ public partial class App : Application
     /// <inheritdoc />
     protected override async void OnStartup(StartupEventArgs e)
     {
+        // Log startup
+        var version = Assembly.GetEntryAssembly()?.GetName().Version;
+        var versionString = version is not null ? $"v{version.Major}.{version.Minor}.{version.Build}" : "unknown";
+        Log.Information("WSLR {Version} starting on {OS}", versionString, Environment.OSVersion);
+
         // Show splash screen immediately
         var splash = new SplashScreen();
         splash.Show();
@@ -91,6 +152,11 @@ public partial class App : Application
             // Initialize host
             splash.UpdateStatus("Initializing services...");
             await _host.StartAsync();
+
+            // Initialize debug logging from settings
+            var settingsService = Services.GetRequiredService<ISettingsService>();
+            var debugEnabled = settingsService.Get(SettingKeys.DebugLoggingEnabled, false);
+            SetDebugLogging(debugEnabled);
 
             // Initialize tray icon
             splash.UpdateStatus("Setting up system tray...");
@@ -111,7 +177,6 @@ public partial class App : Application
             await monitorService.RefreshAsync();
 
             // Check if we should start minimized to tray
-            var settingsService = Services.GetRequiredService<ISettingsService>();
             var startMinimized = settingsService.Get(SettingKeys.StartMinimized, false);
 
             // Prepare main window
@@ -146,6 +211,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            Log.Fatal(ex, "Fatal error during startup");
             splash.UpdateStatus($"Error: {ex.Message}");
             await Task.Delay(3000); // Show error for 3 seconds
             splash.Close();
@@ -175,6 +241,8 @@ public partial class App : Application
     /// <inheritdoc />
     protected override async void OnExit(ExitEventArgs e)
     {
+        Log.Information("WSLR shutting down");
+
         // Stop monitoring
         var monitorService = Services.GetRequiredService<IDistributionMonitorService>();
         monitorService.Dispose();
@@ -185,6 +253,9 @@ public partial class App : Application
 
         await _host.StopAsync();
         _host.Dispose();
+
+        // Flush and close Serilog
+        await Log.CloseAndFlushAsync();
 
         base.OnExit(e);
     }

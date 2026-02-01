@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Wslr.Core.Interfaces;
 using Wslr.Core.Models;
 
@@ -10,6 +11,18 @@ namespace Wslr.Infrastructure.Services;
 /// </summary>
 public sealed class ProcessRunner : IProcessRunner
 {
+    private readonly ILogger<ProcessRunner> _logger;
+    private const int MaxOutputLogLength = 1000;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProcessRunner"/> class.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    public ProcessRunner(ILogger<ProcessRunner> logger)
+    {
+        _logger = logger;
+    }
+
     /// <inheritdoc />
     public Task<ProcessResult> RunAsync(
         string fileName,
@@ -27,6 +40,9 @@ public sealed class ProcessRunner : IProcessRunner
         Encoding? outputEncoding,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogDebug("Executing: {FileName} {Arguments}", fileName, arguments);
+        var stopwatch = Stopwatch.StartNew();
+
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
@@ -64,13 +80,39 @@ public sealed class ProcessRunner : IProcessRunner
         process.BeginErrorReadLine();
 
         await process.WaitForExitAsync(cancellationToken);
+        stopwatch.Stop();
 
-        return new ProcessResult
+        var result = new ProcessResult
         {
             ExitCode = process.ExitCode,
             StandardOutput = outputBuilder.ToString(),
             StandardError = errorBuilder.ToString()
         };
+
+        _logger.LogDebug(
+            "Completed: {FileName} {Arguments} (ExitCode={ExitCode}, Duration={Duration}ms)",
+            fileName,
+            arguments,
+            result.ExitCode,
+            stopwatch.ElapsedMilliseconds);
+
+        if (_logger.IsEnabled(LogLevel.Debug) && !string.IsNullOrEmpty(result.StandardOutput))
+        {
+            var truncatedOutput = result.StandardOutput.Length > MaxOutputLogLength
+                ? result.StandardOutput[..MaxOutputLogLength] + "..."
+                : result.StandardOutput;
+            _logger.LogDebug("Output: {Output}", truncatedOutput.Trim());
+        }
+
+        if (!string.IsNullOrEmpty(result.StandardError))
+        {
+            var truncatedError = result.StandardError.Length > MaxOutputLogLength
+                ? result.StandardError[..MaxOutputLogLength] + "..."
+                : result.StandardError;
+            _logger.LogWarning("StdErr: {Error}", truncatedError.Trim());
+        }
+
+        return result;
     }
 
     /// <inheritdoc />
@@ -81,6 +123,9 @@ public sealed class ProcessRunner : IProcessRunner
         Action<string>? errorHandler,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogDebug("Executing (streaming): {FileName} {Arguments}", fileName, arguments);
+        var stopwatch = Stopwatch.StartNew();
+
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
@@ -116,7 +161,17 @@ public sealed class ProcessRunner : IProcessRunner
         process.BeginErrorReadLine();
 
         await process.WaitForExitAsync(cancellationToken);
+        stopwatch.Stop();
 
-        return process.ExitCode;
+        var exitCode = process.ExitCode;
+
+        _logger.LogDebug(
+            "Completed (streaming): {FileName} {Arguments} (ExitCode={ExitCode}, Duration={Duration}ms)",
+            fileName,
+            arguments,
+            exitCode,
+            stopwatch.ElapsedMilliseconds);
+
+        return exitCode;
     }
 }

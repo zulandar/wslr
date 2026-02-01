@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Microsoft.Extensions.Logging;
 using Wslr.Core.Interfaces;
 using Wslr.Core.Models;
 
@@ -13,6 +14,7 @@ public sealed class DistributionMonitorService : IDistributionMonitorService
     private const int MaxEventHistoryCount = 100;
 
     private readonly IWslService _wslService;
+    private readonly ILogger<DistributionMonitorService> _logger;
     private readonly ObservableCollection<WslDistribution> _distributions = [];
     private readonly ReadOnlyObservableCollection<WslDistribution> _readOnlyDistributions;
     private readonly List<MonitoringEvent> _eventHistory = [];
@@ -83,9 +85,11 @@ public sealed class DistributionMonitorService : IDistributionMonitorService
     /// Initializes a new instance of the <see cref="DistributionMonitorService"/> class.
     /// </summary>
     /// <param name="wslService">The WSL service.</param>
-    public DistributionMonitorService(IWslService wslService)
+    /// <param name="logger">The logger.</param>
+    public DistributionMonitorService(IWslService wslService, ILogger<DistributionMonitorService> logger)
     {
         _wslService = wslService ?? throw new ArgumentNullException(nameof(wslService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _readOnlyDistributions = new ReadOnlyObservableCollection<WslDistribution>(_distributions);
     }
 
@@ -181,6 +185,8 @@ public sealed class DistributionMonitorService : IDistributionMonitorService
                 AddEvent(MonitoringEvent.ManualRefresh(newDistributions.Count));
             }
 
+            _logger.LogDebug("Refresh complete: found {Count} distributions", uniqueDistributions.Count);
+
             DistributionsRefreshed?.Invoke(this, EventArgs.Empty);
         }
         catch (OperationCanceledException)
@@ -189,6 +195,7 @@ public sealed class DistributionMonitorService : IDistributionMonitorService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error refreshing distributions");
             AddEvent(MonitoringEvent.Error(ex.Message));
             RefreshError?.Invoke(this, ex.Message);
         }
@@ -245,6 +252,7 @@ public sealed class DistributionMonitorService : IDistributionMonitorService
         {
             if (!newStates.ContainsKey(name))
             {
+                _logger.LogInformation("Distribution removed: {Name} (was {State})", name, oldState);
                 AddEvent(MonitoringEvent.DistributionRemoved(name, oldState));
                 RaiseStateChanged(name, oldState, null);
             }
@@ -257,6 +265,7 @@ public sealed class DistributionMonitorService : IDistributionMonitorService
             {
                 if (oldState != newState)
                 {
+                    _logger.LogInformation("Distribution state changed: {Name} {OldState} -> {NewState}", name, oldState, newState);
                     AddEvent(MonitoringEvent.StateChanged(name, oldState, newState));
                     RaiseStateChanged(name, oldState, newState);
                 }
@@ -264,6 +273,7 @@ public sealed class DistributionMonitorService : IDistributionMonitorService
             else
             {
                 // New distribution
+                _logger.LogInformation("Distribution added: {Name} ({State})", name, newState);
                 AddEvent(MonitoringEvent.DistributionAdded(name, newState));
                 RaiseStateChanged(name, null, newState);
             }

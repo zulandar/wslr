@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddSingleton<IProcessRunner, ProcessRunner>();
         services.AddSingleton<IWslService, WslService>();
         services.AddSingleton<IWslConfigService, WslConfigService>();
+        services.AddSingleton<ITerminalSessionService, TerminalSessionService>();
 
         return services;
     }

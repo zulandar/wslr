@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Wslr.UI.Services;
 
 namespace Wslr.UI.ViewModels;
@@ -10,6 +11,7 @@ public partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsService _settingsService;
     private readonly IStartupService _startupService;
+    private readonly ILoggingService _loggingService;
 
     [ObservableProperty]
     private bool _minimizeToTrayOnClose;
@@ -29,17 +31,31 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private int _autoRefreshIntervalSeconds;
 
+    [ObservableProperty]
+    private bool _debugLoggingEnabled;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingsViewModel"/> class.
     /// </summary>
     /// <param name="settingsService">The settings service.</param>
     /// <param name="startupService">The startup service for Windows startup management.</param>
-    public SettingsViewModel(ISettingsService settingsService, IStartupService startupService)
+    /// <param name="loggingService">The logging service.</param>
+    public SettingsViewModel(ISettingsService settingsService, IStartupService startupService, ILoggingService loggingService)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _startupService = startupService ?? throw new ArgumentNullException(nameof(startupService));
+        _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
 
         LoadSettings();
+    }
+
+    /// <summary>
+    /// Opens the log folder in the file explorer.
+    /// </summary>
+    [RelayCommand]
+    private void OpenLogFolder()
+    {
+        _loggingService.OpenLogFolder();
     }
 
     private void LoadSettings()
@@ -50,6 +66,7 @@ public partial class SettingsViewModel : ObservableObject
         ShowNotifications = _settingsService.Get(SettingKeys.ShowNotifications, true);
         AutoRefreshEnabled = _settingsService.Get(SettingKeys.AutoRefreshEnabled, true);
         AutoRefreshIntervalSeconds = _settingsService.Get(SettingKeys.AutoRefreshIntervalSeconds, 5);
+        DebugLoggingEnabled = _settingsService.Get(SettingKeys.DebugLoggingEnabled, false);
     }
 
     partial void OnMinimizeToTrayOnCloseChanged(bool value)
@@ -92,5 +109,12 @@ public partial class SettingsViewModel : ObservableObject
     {
         _settingsService.Set(SettingKeys.AutoRefreshIntervalSeconds, value);
         _settingsService.Save();
+    }
+
+    partial void OnDebugLoggingEnabledChanged(bool value)
+    {
+        _settingsService.Set(SettingKeys.DebugLoggingEnabled, value);
+        _settingsService.Save();
+        _loggingService.SetDebugLogging(value);
     }
 }

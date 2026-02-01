@@ -97,4 +97,9 @@ public static class SettingKeys
     /// Comma-separated list of pinned distribution names.
     /// </summary>
     public const string PinnedDistributions = "PinnedDistributions";
+
+    /// <summary>
+    /// Whether debug logging is enabled.
+    /// </summary>
+    public const string DebugLoggingEnabled = "DebugLoggingEnabled";
 }

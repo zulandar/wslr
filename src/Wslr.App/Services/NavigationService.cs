@@ -73,4 +73,15 @@ public class NavigationService : INavigationService
         mainWindow.MarkForExit();
         Application.Current.Shutdown();
     }
+
+    /// <inheritdoc />
+    public void NavigateToTerminal(string distributionName)
+    {
+        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+
+        if (mainWindow.DataContext is MainWindowViewModel mainViewModel)
+        {
+            mainViewModel.NavigateToTerminal(distributionName);
+        }
+    }
 }

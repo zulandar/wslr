@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using Wslr.Core.Interfaces;
 using Wslr.UI.Services;
 
@@ -17,6 +18,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     private readonly IResourceMonitorService _resourceMonitorService;
     private readonly IDistributionResourceService _distributionResourceService;
     private readonly ISettingsService _settingsService;
+    private readonly INavigationService _navigationService;
+    private readonly ILogger<DistributionListViewModel> _logger;
     private readonly SynchronizationContext? _synchronizationContext;
     private readonly HashSet<string> _pinnedNames = new(StringComparer.OrdinalIgnoreCase);
 
@@ -79,13 +82,17 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     /// <param name="resourceMonitorService">The resource monitor service.</param>
     /// <param name="distributionResourceService">The distribution resource service.</param>
     /// <param name="settingsService">The settings service.</param>
+    /// <param name="navigationService">The navigation service.</param>
+    /// <param name="logger">The logger.</param>
     public DistributionListViewModel(
         IWslService wslService,
         IDialogService dialogService,
         IDistributionMonitorService monitorService,
         IResourceMonitorService resourceMonitorService,
         IDistributionResourceService distributionResourceService,
-        ISettingsService settingsService)
+        ISettingsService settingsService,
+        INavigationService navigationService,
+        ILogger<DistributionListViewModel> logger)
     {
         _wslService = wslService ?? throw new ArgumentNullException(nameof(wslService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
@@ -93,6 +100,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
         _resourceMonitorService = resourceMonitorService ?? throw new ArgumentNullException(nameof(resourceMonitorService));
         _distributionResourceService = distributionResourceService ?? throw new ArgumentNullException(nameof(distributionResourceService));
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         // Capture the UI thread's synchronization context for thread marshaling
         _synchronizationContext = SynchronizationContext.Current;
@@ -449,13 +458,18 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             return;
         }
 
+        var name = SelectedDistribution.Name;
+        _logger.LogInformation("Starting distribution: {Name}", name);
+
         try
         {
-            await _wslService.StartDistributionAsync(SelectedDistribution.Name, cancellationToken);
+            await _wslService.StartDistributionAsync(name, cancellationToken);
             await _monitorService.RefreshAsync(cancellationToken);
+            _logger.LogInformation("Distribution started: {Name}", name);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to start distribution: {Name}", name);
             ErrorMessage = $"Failed to start distribution: {ex.Message}";
         }
     }
@@ -471,18 +485,22 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             return;
         }
 
+        var name = SelectedDistribution.Name;
+        _logger.LogInformation("Stopping distribution: {Name}", name);
+
         try
         {
-            var distributionName = SelectedDistribution.Name;
-            await _wslService.TerminateDistributionAsync(distributionName, cancellationToken);
+            await _wslService.TerminateDistributionAsync(name, cancellationToken);
 
             // Clear CPU tracking state for this distribution
-            _distributionResourceService.ClearCpuState(distributionName);
+            _distributionResourceService.ClearCpuState(name);
 
             await _monitorService.RefreshAsync(cancellationToken);
+            _logger.LogInformation("Distribution stopped: {Name}", name);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to stop distribution: {Name}", name);
             ErrorMessage = $"Failed to stop distribution: {ex.Message}";
         }
     }
@@ -498,27 +516,32 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             return;
         }
 
+        var name = SelectedDistribution.Name;
+
         var confirmed = await _dialogService.ShowConfirmationAsync(
             "Delete Distribution",
-            $"Are you sure you want to delete '{SelectedDistribution.Name}'? This action cannot be undone.");
+            $"Are you sure you want to delete '{name}'? This action cannot be undone.");
 
         if (!confirmed)
         {
             return;
         }
 
+        _logger.LogInformation("Deleting distribution: {Name}", name);
+
         try
         {
-            var distributionName = SelectedDistribution.Name;
-            await _wslService.UnregisterDistributionAsync(distributionName, cancellationToken);
+            await _wslService.UnregisterDistributionAsync(name, cancellationToken);
 
             // Clear CPU tracking state for this distribution
-            _distributionResourceService.ClearCpuState(distributionName);
+            _distributionResourceService.ClearCpuState(name);
 
             await _monitorService.RefreshAsync(cancellationToken);
+            _logger.LogInformation("Distribution deleted: {Name}", name);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to delete distribution: {Name}", name);
             ErrorMessage = $"Failed to delete distribution: {ex.Message}";
         }
     }
@@ -529,13 +552,17 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task ShutdownAllAsync(CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Shutting down all WSL distributions");
+
         try
         {
             await _wslService.ShutdownAsync(cancellationToken);
             await _monitorService.RefreshAsync(cancellationToken);
+            _logger.LogInformation("All WSL distributions shut down");
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to shutdown WSL");
             ErrorMessage = $"Failed to shutdown WSL: {ex.Message}";
         }
     }
@@ -570,6 +597,21 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
 
         // Rebuild filtered collections
         RebuildFilteredCollections();
+    }
+
+    /// <summary>
+    /// Opens a terminal for the specified distribution.
+    /// </summary>
+    /// <param name="distribution">The distribution to open a terminal for.</param>
+    [RelayCommand]
+    private void OpenTerminal(DistributionItemViewModel? distribution)
+    {
+        if (distribution is null || !distribution.IsRunning)
+        {
+            return;
+        }
+
+        _navigationService.NavigateToTerminal(distribution.Name);
     }
 
     private void RebuildFilteredCollections()
@@ -626,7 +668,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var defaultFileName = $"{SelectedDistribution.Name}-{DateTime.Now:yyyy-MM-dd}.tar";
+        var name = SelectedDistribution.Name;
+        var defaultFileName = $"{name}-{DateTime.Now:yyyy-MM-dd}.tar";
         var filePath = await _dialogService.ShowSaveFileDialogAsync(
             "Export Distribution",
             defaultFileName,
@@ -637,16 +680,20 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             return;
         }
 
+        _logger.LogInformation("Exporting distribution: {Name} to {Path}", name, filePath);
+
         try
         {
             IsLoading = true;
             ErrorMessage = null;
 
-            await _wslService.ExportDistributionAsync(SelectedDistribution.Name, filePath, null, cancellationToken);
+            await _wslService.ExportDistributionAsync(name, filePath, null, cancellationToken);
+            _logger.LogInformation("Distribution exported: {Name} to {Path}", name, filePath);
             await _dialogService.ShowInfoAsync("Export Complete", $"Distribution exported to:\n{filePath}");
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to export distribution: {Name}", name);
             ErrorMessage = $"Failed to export distribution: {ex.Message}";
         }
         finally
@@ -714,6 +761,8 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
             return;
         }
 
+        _logger.LogInformation("Importing distribution: {Name} from {Path} to {Location}", suggestedName, tarPath, installLocation);
+
         try
         {
             IsLoading = true;
@@ -724,10 +773,12 @@ public partial class DistributionListViewModel : ObservableObject, IDisposable
 
             await _wslService.ImportDistributionAsync(suggestedName, installLocation, tarPath, 2, null, cancellationToken);
             await _monitorService.RefreshAsync(cancellationToken);
+            _logger.LogInformation("Distribution imported: {Name}", suggestedName);
             await _dialogService.ShowInfoAsync("Import Complete", $"Distribution '{suggestedName}' imported successfully.");
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to import distribution: {Name}", suggestedName);
             ErrorMessage = $"Failed to import distribution: {ex.Message}";
         }
         finally

@@ -214,7 +214,9 @@
                             Style="{StaticResource PrimaryButtonStyle}"
                             Padding="12,6"
                             Margin="0,0,8,0"
-                            FontSize="12" />
+                            FontSize="12"
+                            Command="{Binding DataContext.OpenTerminalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CommandParameter="{Binding}" />
                     <Button Style="{StaticResource SecondaryButtonStyle}"
                             Padding="8,6"
                             ToolTip="Stop">

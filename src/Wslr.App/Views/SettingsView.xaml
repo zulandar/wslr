@@ -167,6 +167,57 @@
                 </Grid>
             </Border>
 
+            <!-- Diagnostics Section -->
+            <TextBlock Text="DIAGNOSTICS"
+                       Style="{StaticResource SettingsSectionHeaderStyle}"
+                       Margin="0,24,0,12" />
+
+            <!-- Enable Debug Logging -->
+            <Border Style="{StaticResource SettingsRowStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Enable debug logging"
+                                   Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="Log detailed information for troubleshooting"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <CheckBox Grid.Column="1"
+                              Style="{StaticResource ToggleSwitchStyle}"
+                              IsChecked="{Binding DebugLoggingEnabled}"
+                              VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Open Log Folder -->
+            <Border Style="{StaticResource SettingsRowStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Open log folder"
+                                   Style="{StaticResource BodyTextStyle}" />
+                        <TextBlock Text="View log files in File Explorer"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Content="Open"
+                            Command="{Binding OpenLogFolderCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="16,6"
+                            VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
             <!-- About Section -->
             <TextBlock Text="ABOUT"
                        Style="{StaticResource SettingsSectionHeaderStyle}"
