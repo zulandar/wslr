@@ -72,16 +72,27 @@ public sealed class WslService : IWslService
 
         progress?.Report($"Installing {distributionName}...");
 
+        var errorOutput = new StringBuilder();
         var exitCode = await _processRunner.RunWithOutputAsync(
             WslExecutable,
             $"--install -d {distributionName}",
             line => progress?.Report(line),
-            line => progress?.Report($"[Error] {line}"),
+            line =>
+            {
+                errorOutput.AppendLine(line);
+                progress?.Report($"[Error] {line}");
+            },
             cancellationToken);
 
         if (exitCode != 0)
         {
-            throw new WslException($"Failed to install distribution '{distributionName}'", exitCode, null);
+            var errorMessage = errorOutput.ToString().Trim();
+            throw new WslException(
+                string.IsNullOrEmpty(errorMessage)
+                    ? $"Failed to install distribution '{distributionName}'"
+                    : errorMessage,
+                exitCode,
+                errorMessage);
         }
 
         progress?.Report($"Successfully installed {distributionName}");
@@ -118,16 +129,27 @@ public sealed class WslService : IWslService
 
         progress?.Report($"Exporting {distributionName} to {exportPath}...");
 
+        var errorOutput = new StringBuilder();
         var exitCode = await _processRunner.RunWithOutputAsync(
             WslExecutable,
             $"--export {distributionName} \"{exportPath}\"",
             line => progress?.Report(line),
-            line => progress?.Report($"[Error] {line}"),
+            line =>
+            {
+                errorOutput.AppendLine(line);
+                progress?.Report($"[Error] {line}");
+            },
             cancellationToken);
 
         if (exitCode != 0)
         {
-            throw new WslException($"Failed to export distribution '{distributionName}'", exitCode, null);
+            var errorMessage = errorOutput.ToString().Trim();
+            throw new WslException(
+                string.IsNullOrEmpty(errorMessage)
+                    ? $"Failed to export distribution '{distributionName}'"
+                    : errorMessage,
+                exitCode,
+                errorMessage);
         }
 
         progress?.Report($"Successfully exported {distributionName}");
@@ -153,16 +175,27 @@ public sealed class WslService : IWslService
 
         progress?.Report($"Importing {distributionName} from {tarPath}...");
 
+        var errorOutput = new StringBuilder();
         var exitCode = await _processRunner.RunWithOutputAsync(
             WslExecutable,
             $"--import {distributionName} \"{installLocation}\" \"{tarPath}\" --version {version}",
             line => progress?.Report(line),
-            line => progress?.Report($"[Error] {line}"),
+            line =>
+            {
+                errorOutput.AppendLine(line);
+                progress?.Report($"[Error] {line}");
+            },
             cancellationToken);
 
         if (exitCode != 0)
         {
-            throw new WslException($"Failed to import distribution '{distributionName}'", exitCode, null);
+            var errorMessage = errorOutput.ToString().Trim();
+            throw new WslException(
+                string.IsNullOrEmpty(errorMessage)
+                    ? $"Failed to import distribution '{distributionName}'"
+                    : errorMessage,
+                exitCode,
+                errorMessage);
         }
 
         progress?.Report($"Successfully imported {distributionName}");

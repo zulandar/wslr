@@ -360,13 +360,13 @@ public class WslServiceTests
     public async Task StartDistributionAsync_CallsProcessRunnerWithCorrectArguments()
     {
         _processRunnerMock
-            .Setup(x => x.RunAsync("wsl.exe", "-d Ubuntu --exec exit", It.IsAny<CancellationToken>()))
+            .Setup(x => x.RunAsync("wsl.exe", "-d Ubuntu -- true", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProcessResult { ExitCode = 0, StandardOutput = "", StandardError = "" });
 
         await _sut.StartDistributionAsync("Ubuntu");
 
         _processRunnerMock.Verify(
-            x => x.RunAsync("wsl.exe", "-d Ubuntu --exec exit", It.IsAny<CancellationToken>()),
+            x => x.RunAsync("wsl.exe", "-d Ubuntu -- true", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
