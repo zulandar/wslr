@@ -101,7 +101,18 @@ public class GitHubUpdateChecker : IUpdateChecker
 
     private static Version? GetCurrentVersion()
     {
-        return Assembly.GetEntryAssembly()?.GetName().Version;
+        var infoVersion = Assembly.GetEntryAssembly()
+            ?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+
+        if (string.IsNullOrEmpty(infoVersion))
+        {
+            return null;
+        }
+
+        // MinVer format: "0.1.0" or "0.1.0+build.123" - strip build metadata
+        var versionString = infoVersion.Split('+')[0];
+        return Version.TryParse(versionString, out var version) ? version : null;
     }
 
     private static Version? ParseVersion(string tagName)

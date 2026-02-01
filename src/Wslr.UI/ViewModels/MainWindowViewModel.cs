@@ -56,13 +56,18 @@ public partial class MainWindowViewModel : ObservableObject
 
     private static string GetVersionString()
     {
-        var version = Assembly.GetEntryAssembly()?.GetName().Version;
-        if (version is null)
+        var infoVersion = Assembly.GetEntryAssembly()
+            ?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+
+        if (string.IsNullOrEmpty(infoVersion))
         {
             return "v0.0.0";
         }
 
-        return $"v{version.Major}.{version.Minor}.{version.Build}";
+        // MinVer format: "0.1.0" or "0.1.0+build.123" - strip build metadata
+        var version = infoVersion.Split('+')[0];
+        return $"v{version}";
     }
 
     /// <summary>

@@ -162,8 +162,10 @@ public partial class App : Application
         };
 
         // Log startup
-        var version = Assembly.GetEntryAssembly()?.GetName().Version;
-        var versionString = version is not null ? $"v{version.Major}.{version.Minor}.{version.Build}" : "unknown";
+        var infoVersion = Assembly.GetEntryAssembly()
+            ?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+        var versionString = !string.IsNullOrEmpty(infoVersion) ? $"v{infoVersion.Split('+')[0]}" : "unknown";
         Log.Information("WSLR {Version} starting on {OS}", versionString, Environment.OSVersion);
 
         // Show splash screen on a separate thread for smooth animations
