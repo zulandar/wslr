@@ -2,6 +2,7 @@
 
 A lightweight Windows desktop application for managing WSL (Windows Subsystem for Linux) distributions.
 
+[![CI](https://github.com/zulandar/wslr/actions/workflows/ci.yml/badge.svg)](https://github.com/zulandar/wslr/actions/workflows/ci.yml)
 ![Windows](https://img.shields.io/badge/Windows-10%2F11-blue)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple)
 ![License](https://img.shields.io/badge/License-MIT-green)
