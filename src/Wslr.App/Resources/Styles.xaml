@@ -164,6 +164,8 @@
     <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
     <converters:IndexToBoolConverter x:Key="IndexToBoolConverter" />
+    <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+    <converters:AllFalseConverter x:Key="AllFalseConverter" />
 
     <!-- ==================== -->
     <!-- BUTTON STYLES        -->

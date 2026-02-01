@@ -150,12 +150,26 @@
                             Command="{Binding StartDistributionCommand}"
                             Style="{StaticResource SuccessButtonStyle}"
                             Padding="12,8"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,0">
+                        <Button.IsEnabled>
+                            <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                <Binding Path="IsLoading" />
+                                <Binding Path="SelectedDistribution.IsInstalling" />
+                            </MultiBinding>
+                        </Button.IsEnabled>
+                    </Button>
                     <Button Content="Stop"
                             Command="{Binding StopDistributionCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
                             Padding="12,8"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,0">
+                        <Button.IsEnabled>
+                            <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                <Binding Path="IsLoading" />
+                                <Binding Path="SelectedDistribution.IsInstalling" />
+                            </MultiBinding>
+                        </Button.IsEnabled>
+                    </Button>
 
                     <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
 
@@ -163,23 +177,45 @@
                             Command="{Binding SetDefaultCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
                             Padding="12,8"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,0">
+                        <Button.IsEnabled>
+                            <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                <Binding Path="IsLoading" />
+                                <Binding Path="SelectedDistribution.IsInstalling" />
+                            </MultiBinding>
+                        </Button.IsEnabled>
+                    </Button>
                     <Button Content="Export"
                             Command="{Binding ExportDistributionCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
                             Padding="12,8"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,0">
+                        <Button.IsEnabled>
+                            <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                <Binding Path="IsLoading" />
+                                <Binding Path="SelectedDistribution.IsInstalling" />
+                            </MultiBinding>
+                        </Button.IsEnabled>
+                    </Button>
                     <Button Content="Delete"
                             Command="{Binding DeleteDistributionCommand}"
                             Style="{StaticResource DangerButtonStyle}"
-                            Padding="12,8" />
+                            Padding="12,8">
+                        <Button.IsEnabled>
+                            <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                <Binding Path="IsLoading" />
+                                <Binding Path="SelectedDistribution.IsInstalling" />
+                            </MultiBinding>
+                        </Button.IsEnabled>
+                    </Button>
 
                     <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
 
                     <Button Content="Shutdown All"
                             Command="{Binding ShutdownAllCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
-                            Padding="12,8" />
+                            Padding="12,8"
+                            IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBoolConverter}}" />
                 </StackPanel>
 
                 <!-- Left side: Search, filters, view toggles -->
@@ -719,29 +755,64 @@
                                 Style="{StaticResource PrimaryButtonStyle}"
                                 Padding="16,8"
                                 Margin="0,0,8,0"
-                                Visibility="{Binding SelectedDistribution.IsRunning, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                Visibility="{Binding SelectedDistribution.IsRunning, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Button.IsEnabled>
+                                <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                    <Binding Path="IsLoading" />
+                                    <Binding Path="SelectedDistribution.IsInstalling" />
+                                </MultiBinding>
+                            </Button.IsEnabled>
+                        </Button>
                         <!-- Start button (only for stopped distributions) -->
                         <Button Content="Start"
                                 Command="{Binding StartDistributionCommand}"
                                 Style="{StaticResource SuccessButtonStyle}"
                                 Padding="16,8"
                                 Margin="0,0,8,0"
-                                Visibility="{Binding SelectedDistribution.IsRunning, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}" />
+                                Visibility="{Binding SelectedDistribution.IsRunning, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}">
+                            <Button.IsEnabled>
+                                <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                    <Binding Path="IsLoading" />
+                                    <Binding Path="SelectedDistribution.IsInstalling" />
+                                </MultiBinding>
+                            </Button.IsEnabled>
+                        </Button>
                         <Button Content="Stop"
                                 Command="{Binding StopDistributionCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}"
                                 Padding="16,8"
                                 Margin="0,0,8,0"
-                                Visibility="{Binding SelectedDistribution.IsRunning, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                Visibility="{Binding SelectedDistribution.IsRunning, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Button.IsEnabled>
+                                <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                    <Binding Path="IsLoading" />
+                                    <Binding Path="SelectedDistribution.IsInstalling" />
+                                </MultiBinding>
+                            </Button.IsEnabled>
+                        </Button>
                         <Button Content="Export"
                                 Command="{Binding ExportDistributionCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}"
                                 Padding="16,8"
-                                Margin="0,0,8,0" />
+                                Margin="0,0,8,0">
+                            <Button.IsEnabled>
+                                <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                    <Binding Path="IsLoading" />
+                                    <Binding Path="SelectedDistribution.IsInstalling" />
+                                </MultiBinding>
+                            </Button.IsEnabled>
+                        </Button>
                         <Button Content="Set as Default"
                                 Command="{Binding SetDefaultCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}"
-                                Padding="16,8" />
+                                Padding="16,8">
+                            <Button.IsEnabled>
+                                <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                    <Binding Path="IsLoading" />
+                                    <Binding Path="SelectedDistribution.IsInstalling" />
+                                </MultiBinding>
+                            </Button.IsEnabled>
+                        </Button>
                     </StackPanel>
                 </Grid>
             </Grid>

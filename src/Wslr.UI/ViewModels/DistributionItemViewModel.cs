@@ -17,6 +17,7 @@ public partial class DistributionItemViewModel : ObservableObject
     partial void OnStateChanged(DistributionState value)
     {
         OnPropertyChanged(nameof(IsRunning));
+        OnPropertyChanged(nameof(IsInstalling));
         OnPropertyChanged(nameof(StateText));
     }
 
@@ -42,6 +43,11 @@ public partial class DistributionItemViewModel : ObservableObject
     /// Gets a value indicating whether the distribution is currently running.
     /// </summary>
     public bool IsRunning => State == DistributionState.Running;
+
+    /// <summary>
+    /// Gets a value indicating whether the distribution is currently installing.
+    /// </summary>
+    public bool IsInstalling => State == DistributionState.Installing;
 
     /// <summary>
     /// Gets a value indicating whether memory usage data is available.
@@ -107,6 +113,7 @@ public partial class DistributionItemViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(IsRunning));
+        OnPropertyChanged(nameof(IsInstalling));
         OnPropertyChanged(nameof(StateText));
     }
 
