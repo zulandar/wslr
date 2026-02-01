@@ -9,7 +9,8 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="280" />
+            <ColumnDefinition Width="280" MinWidth="200" MaxWidth="500" />
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
@@ -107,7 +108,8 @@
                                     <TextBlock Text="{Binding Description}"
                                                Style="{StaticResource CaptionTextStyle}"
                                                Foreground="{StaticResource TextMutedBrush}"
-                                               TextTrimming="CharacterEllipsis"
+                                               TextWrapping="Wrap"
+                                               ToolTip="{Binding Description}"
                                                Margin="0,2,0,0" />
                                     <Border Background="{StaticResource PrimaryBrush}"
                                             CornerRadius="2"
@@ -127,8 +129,16 @@
             </Grid>
         </Border>
 
+        <!-- Resizable Splitter -->
+        <GridSplitter Grid.Column="1"
+                      Width="4"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Stretch"
+                      Background="Transparent"
+                      Cursor="SizeWE" />
+
         <!-- Right Panel: Details and Actions -->
-        <ScrollViewer Grid.Column="1"
+        <ScrollViewer Grid.Column="2"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       Padding="0,0,8,0">
@@ -355,7 +365,7 @@
         </ScrollViewer>
 
         <!-- Loading overlay -->
-        <Border Grid.ColumnSpan="2"
+        <Border Grid.ColumnSpan="3"
                 Background="{StaticResource BackgroundBrush}"
                 Opacity="0.9"
                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
