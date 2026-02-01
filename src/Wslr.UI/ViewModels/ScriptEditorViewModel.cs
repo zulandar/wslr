@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Wslr.Core.Interfaces;
 using Wslr.Core.Models;
+using Wslr.UI.Services;
 
 namespace Wslr.UI.ViewModels;
 
@@ -16,6 +18,7 @@ public partial class ScriptEditorViewModel : ObservableObject
     private readonly IScriptExecutionService _scriptExecutionService;
     private readonly IScriptTemplateService _scriptTemplateService;
     private readonly IWslService _wslService;
+    private readonly IDialogService _dialogService;
     private readonly ILogger<ScriptEditorViewModel> _logger;
 
     private CancellationTokenSource? _executionCts;
@@ -79,11 +82,13 @@ public partial class ScriptEditorViewModel : ObservableObject
         IScriptExecutionService scriptExecutionService,
         IScriptTemplateService scriptTemplateService,
         IWslService wslService,
+        IDialogService dialogService,
         ILogger<ScriptEditorViewModel> logger)
     {
         _scriptExecutionService = scriptExecutionService ?? throw new ArgumentNullException(nameof(scriptExecutionService));
         _scriptTemplateService = scriptTemplateService ?? throw new ArgumentNullException(nameof(scriptTemplateService));
         _wslService = wslService ?? throw new ArgumentNullException(nameof(wslService));
+        _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -376,6 +381,151 @@ public partial class ScriptEditorViewModel : ObservableObject
         SuccessMessage = null;
     }
 
+    /// <summary>
+    /// Exports the current template to a JSON file.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanExportTemplate))]
+    public async Task ExportTemplateAsync()
+    {
+        if (CurrentTemplate == null)
+        {
+            ErrorMessage = "No template selected to export.";
+            return;
+        }
+
+        try
+        {
+            var fileName = $"{CurrentTemplate.Name.Replace(" ", "-")}.json";
+            var filePath = await _dialogService.ShowSaveFileDialogAsync(
+                "Export Script Template",
+                fileName,
+                "JSON files|*.json|All files|*.*");
+
+            if (string.IsNullOrEmpty(filePath)) return;
+
+            var json = await _scriptTemplateService.ExportTemplateAsync(CurrentTemplate.Id);
+            await File.WriteAllTextAsync(filePath, json);
+
+            SuccessMessage = $"Template exported to {Path.GetFileName(filePath)}";
+            _logger.LogInformation("Exported template '{Name}' to {Path}", CurrentTemplate.Name, filePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to export template");
+            ErrorMessage = $"Export failed: {ex.Message}";
+        }
+    }
+
+    private bool CanExportTemplate() => CurrentTemplate != null;
+
+    /// <summary>
+    /// Imports a template from a JSON file.
+    /// </summary>
+    [RelayCommand]
+    public async Task ImportTemplateAsync()
+    {
+        try
+        {
+            var filePath = await _dialogService.ShowOpenFileDialogAsync(
+                "Import Script Template",
+                "JSON files|*.json|All files|*.*");
+
+            if (string.IsNullOrEmpty(filePath)) return;
+
+            var json = await File.ReadAllTextAsync(filePath);
+            var imported = await _scriptTemplateService.ImportTemplateAsync(json);
+
+            // Refresh templates list and select the imported one
+            await LoadAsync();
+            CurrentTemplate = imported;
+
+            SuccessMessage = $"Imported template: {imported.Name}";
+            _logger.LogInformation("Imported template '{Name}' from {Path}", imported.Name, filePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to import template");
+            ErrorMessage = $"Import failed: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Duplicates the current template.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanDuplicateTemplate))]
+    public async Task DuplicateTemplateAsync()
+    {
+        if (CurrentTemplate == null)
+        {
+            ErrorMessage = "No template selected to duplicate.";
+            return;
+        }
+
+        try
+        {
+            var duplicate = await _scriptTemplateService.DuplicateTemplateAsync(CurrentTemplate.Id);
+
+            // Refresh templates list and select the duplicate
+            await LoadAsync();
+            CurrentTemplate = duplicate;
+
+            SuccessMessage = $"Created copy: {duplicate.Name}";
+            _logger.LogInformation("Duplicated template '{Original}' as '{Copy}'", CurrentTemplate?.Name, duplicate.Name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to duplicate template");
+            ErrorMessage = $"Duplicate failed: {ex.Message}";
+        }
+    }
+
+    private bool CanDuplicateTemplate() => CurrentTemplate != null;
+
+    /// <summary>
+    /// Deletes the current template.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanDeleteTemplate))]
+    public async Task DeleteTemplateAsync()
+    {
+        if (CurrentTemplate == null)
+        {
+            ErrorMessage = "No template selected to delete.";
+            return;
+        }
+
+        if (CurrentTemplate.IsBuiltIn)
+        {
+            ErrorMessage = "Cannot delete built-in templates.";
+            return;
+        }
+
+        var confirmed = await _dialogService.ShowConfirmationAsync(
+            "Delete Template",
+            $"Are you sure you want to delete '{CurrentTemplate.Name}'?\n\nThis action cannot be undone.");
+
+        if (!confirmed) return;
+
+        try
+        {
+            var templateName = CurrentTemplate.Name;
+            await _scriptTemplateService.DeleteTemplateAsync(CurrentTemplate.Id);
+
+            // Clear editor and refresh
+            NewScript();
+            await LoadAsync();
+
+            SuccessMessage = $"Deleted template: {templateName}";
+            _logger.LogInformation("Deleted template '{Name}'", templateName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete template");
+            ErrorMessage = $"Delete failed: {ex.Message}";
+        }
+    }
+
+    private bool CanDeleteTemplate() => CurrentTemplate != null && !CurrentTemplate.IsBuiltIn;
+
     partial void OnScriptContentChanged(string value)
     {
         IsModified = true;
@@ -412,6 +562,11 @@ public partial class ScriptEditorViewModel : ObservableObject
 
     partial void OnCurrentTemplateChanged(ScriptTemplate? value)
     {
+        // Update command states
+        ExportTemplateCommand.NotifyCanExecuteChanged();
+        DuplicateTemplateCommand.NotifyCanExecuteChanged();
+        DeleteTemplateCommand.NotifyCanExecuteChanged();
+
         if (value == null) return;
 
         // Load the template content when selected
