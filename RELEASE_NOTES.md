@@ -1,3 +1,11 @@
+## What's New in v0.1.1
+
+### Bug Fixes
+- Fix version display showing 0.0.0 instead of actual version
+- Version now correctly reads from MinVer's InformationalVersion attribute
+
+---
+
 ## What's New in v0.1.0
 
 ### Embedded Terminal
