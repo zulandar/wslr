@@ -47,25 +47,40 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Publish
+      - name: Publish (Self-Contained)
         run: |
           dotnet publish src/Wslr.App/Wslr.App.csproj `
             --configuration Release `
-            --output ./publish `
+            --output ./publish-self-contained `
             --runtime win-x64 `
             --self-contained true
 
-      - name: Clean publish folder
+      - name: Publish (Framework-Dependent)
         run: |
-          # Remove XML documentation files and PDBs
-          Remove-Item -Path ./publish/*.xml -Force -ErrorAction SilentlyContinue
-          Remove-Item -Path ./publish/*.pdb -Force -ErrorAction SilentlyContinue
+          dotnet publish src/Wslr.App/Wslr.App.csproj `
+            --configuration Release `
+            --output ./publish-framework-dependent `
+            --runtime win-x64 `
+            --self-contained false `
+            -p:PublishSingleFile=false
 
-      - name: Create ZIP
-        run: Compress-Archive -Path ./publish/* -DestinationPath Wslr-${{ github.ref_name }}.zip
+      - name: Clean publish folders
+        run: |
+          # Remove XML documentation files and PDBs from both folders
+          Remove-Item -Path ./publish-self-contained/*.xml -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path ./publish-self-contained/*.pdb -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path ./publish-framework-dependent/*.xml -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path ./publish-framework-dependent/*.pdb -Force -ErrorAction SilentlyContinue
+
+      - name: Create ZIPs
+        run: |
+          Compress-Archive -Path ./publish-self-contained/* -DestinationPath Wslr-${{ github.ref_name }}-win-x64-self-contained.zip
+          Compress-Archive -Path ./publish-framework-dependent/* -DestinationPath Wslr-${{ github.ref_name }}-win-x64-requires-dotnet8.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Wslr-${{ github.ref_name }}.zip
+          files: |
+            Wslr-${{ github.ref_name }}-win-x64-self-contained.zip
+            Wslr-${{ github.ref_name }}-win-x64-requires-dotnet8.zip
           body_path: RELEASE_NOTES.md
