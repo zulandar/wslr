@@ -29,10 +29,10 @@ jobs:
           node-version: '20'
 
       - name: Restore dependencies
-        run: dotnet restore -r win-x64
+        run: dotnet restore
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore -r win-x64
+        run: dotnet build --configuration Release --no-restore
 
       - name: Test
         run: dotnet test --configuration Release --no-build --verbosity normal
