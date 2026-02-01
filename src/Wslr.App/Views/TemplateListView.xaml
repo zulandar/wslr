@@ -51,7 +51,7 @@
                 <!-- Template List -->
                 <ListBox Grid.Row="2"
                          ItemsSource="{Binding Templates}"
-                         SelectedItem="{Binding SelectedTemplate}"
+                         SelectedItem="{Binding SelectedTemplate, Mode=TwoWay}"
                          Background="Transparent"
                          BorderThickness="0"
                          Margin="8,0,8,8">

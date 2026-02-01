@@ -13,7 +13,19 @@ public class NullToVisibilityConverter : IValueConverter
     /// <inheritdoc />
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        return value is not null ? Visibility.Visible : Visibility.Collapsed;
+        var isNotNull = value is not null;
+
+        // Check for inverse parameter (accept both "Invert" and "Inverse")
+        var inverse = parameter is string param &&
+                      (param.Equals("Invert", StringComparison.OrdinalIgnoreCase) ||
+                       param.Equals("Inverse", StringComparison.OrdinalIgnoreCase));
+
+        if (inverse)
+        {
+            isNotNull = !isNotNull;
+        }
+
+        return isNotNull ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <inheritdoc />

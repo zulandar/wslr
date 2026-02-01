@@ -51,7 +51,7 @@
                 <!-- Profile List -->
                 <ListBox Grid.Row="2"
                          ItemsSource="{Binding Profiles}"
-                         SelectedItem="{Binding SelectedProfile}"
+                         SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
                          Background="Transparent"
                          BorderThickness="0"
                          Margin="8,0,8,8">

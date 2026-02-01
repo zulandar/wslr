@@ -14,9 +14,10 @@ public class BoolToVisibilityConverter : IValueConverter
     {
         if (value is bool boolValue)
         {
-            // Check for inverse parameter
+            // Check for inverse parameter (accept both "Invert" and "Inverse")
             var inverse = parameter is string param &&
-                          param.Equals("Inverse", StringComparison.OrdinalIgnoreCase);
+                          (param.Equals("Invert", StringComparison.OrdinalIgnoreCase) ||
+                           param.Equals("Inverse", StringComparison.OrdinalIgnoreCase));
 
             if (inverse)
             {
