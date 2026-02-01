@@ -81,7 +81,7 @@ public partial class App : Application
                 logFilePath,
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 7,
-                fileSizeLimitBytes: 10 * 1024 * 1024, // 10MB per file
+                fileSizeLimitBytes: 7 * 1024 * 1024, // 7MB per file, ~50MB total max
                 rollOnFileSizeLimit: true,
                 outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
